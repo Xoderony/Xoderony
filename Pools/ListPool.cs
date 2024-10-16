@@ -7,7 +7,7 @@ namespace GuestUnion.Pools {
         private readonly Stack<IList<T>> pool;
 
         public ListPool(ushort capacity = 15) {
-            pool = new Stack<IList<T>>(capacity);
+            pool = new(capacity);
         }
 
         public IList<T> Rent() {
