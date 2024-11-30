@@ -1,0 +1,10 @@
+﻿[*.cs]
+
+# IDE0022: 使用方法的程序块主体
+dotnet_diagnostic.IDE0022.severity = silent
+
+# CS1591: 缺少对公共可见类型或成员的 XML 注释
+dotnet_diagnostic.CS1591.severity = silent
+
+# IDE0130: 命名空间与文件夹结构不匹配
+dotnet_diagnostic.IDE0130.severity = silent
