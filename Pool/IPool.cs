@@ -1,4 +1,4 @@
-﻿namespace GuestUnion.Pool {
+﻿namespace GuestUnion.ObjectPool {
 
     public interface IPool<T> where T : class {
 

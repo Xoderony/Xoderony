@@ -1,9 +1,9 @@
 ﻿using System;
 
-namespace GuestUnion.DoubleExtensions {
+namespace GuestUnion {
 
     public static class DoubleExtensions {
-
+        public static double Abs(this double value) => value < 0 ? -value : value;
         public static double Clamp(this double value, double min, double max) =>
             value < min
             ? min

@@ -1,8 +1,10 @@
 ﻿using System;
 
-namespace GuestUnion.SingleExtensions {
+namespace GuestUnion {
 
     public static class SingleExtensions {
+
+        public static float Abs(this float value) => value < 0 ? -value : value;
 
         public static float Clamp(this float value, float min, float max) =>
             value < min

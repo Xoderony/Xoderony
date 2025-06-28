@@ -1,14 +1,10 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 
-namespace GuestUnion.ArrayExtensions {
+namespace GuestUnion {
 
     public static class ArrayExtensions {
-
-        public static void Resize<T>(this T[] array, int newSize, out T[] newArray) {
-            Array.Resize(ref array, newSize);
-            newArray = array;
-        }
 
         public static bool TrueForAll<T>(this T[] array, Predicate<T> match) => Array.TrueForAll(array, match);
 
@@ -43,5 +39,23 @@ namespace GuestUnion.ArrayExtensions {
         public static void Sort<T>(this T[] array) => Array.Sort(array);
 
         public static void Sort<T>(this T[] array, IComparer<T> comparer) => Array.Sort(array, comparer);
+
+        public static bool TryGet<T>(this T[] array, int index, [MaybeNull] out T value) {
+            if (index < 0 || index >= array.Length) {
+                value = default;
+                return false;
+            } else {
+                value = array[index];
+                return true;
+            }
+        }
+
+        [return: MaybeNull]
+        public static T GetValueSafe<T>(this T[] array, int index) {
+            if (index < 0 || index >= array.Length) {
+                return default;
+            }
+            return array[index];
+        }
     }
 }
