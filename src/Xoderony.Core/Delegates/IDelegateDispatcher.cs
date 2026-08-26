@@ -1,9 +1,8 @@
 using System;
 
-namespace Xoderony {
+namespace Xoderony;
 
-    public interface IDelegateDispatcher<TDelegate> where TDelegate : Delegate {
+public interface IDelegateDispatcher<TDelegate> where TDelegate : Delegate {
 
-        TDelegate Handlers { get; }
-    }
+    TDelegate? Handlers { get; }
 }
