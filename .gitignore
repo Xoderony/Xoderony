@@ -74,7 +74,6 @@ StyleCopReport.xml
 *_p.c
 *_h.h
 *.ilk
-*.meta
 *.obj
 *.iobj
 *.pch
@@ -91,6 +90,8 @@ StyleCopReport.xml
 *.tmp_proj
 *_wpftmp.csproj
 *.log
+# Visual Studio / Windows thumbnail caches — do NOT ignore Unity UPM .meta
+Thumbs.db
 *.vspscc
 *.vssscc
 .builds
@@ -358,6 +359,24 @@ MigrationBackup/
 
 # Ionide (cross platform F# VS Code tools) working folder
 .ionide/
+
+# Rider / VS Code
+.idea/
+.vscode/*
+!.vscode/launch.json
+!.vscode/tasks.json
+
+# Unity generated (keep unity/**/*.meta)
+[Ll]ibrary/
+[Tt]emp/
+[Oo]bj/
+[Bb]uild/
+[Bb]uilds/
+[Ll]ogs/
+[Uu]ser[Ss]ettings/
+*.pidb.meta
+*.pdb.meta
+*.mdb.meta
 
 # Fody - auto-generated XML schema
 FodyWeavers.xsd

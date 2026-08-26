@@ -1,0 +1,19 @@
+{
+  "name": "io.github.xoderony.core",
+  "version": "0.1.0",
+  "displayName": "Xoderony Core",
+  "description": "Collections, delegate channels, BCL extensions, and object pools. Same sources as the Xoderony.Core NuGet package.",
+  "unity": "7000.0",
+  "author": {
+    "name": "Xoderony",
+    "url": "https://github.com/Xoderony"
+  },
+  "keywords": [
+    "xoderony",
+    "core",
+    "collections",
+    "delegates",
+    "extensions",
+    "object-pool"
+  ]
+}

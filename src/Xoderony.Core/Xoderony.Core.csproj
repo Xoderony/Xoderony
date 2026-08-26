@@ -1,0 +1,9 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <RootNamespace>Xoderony</RootNamespace>
+    <AssemblyName>Xoderony.Core</AssemblyName>
+    <PackageId>Xoderony.Core</PackageId>
+    <Description>Collections, delegate channels, BCL extensions, and object pools. No UnityEngine dependency.</Description>
+  </PropertyGroup>
+</Project>
