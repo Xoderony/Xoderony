@@ -23,3 +23,4 @@
 ## 性能
 
 - 热路径避免使用异常控制流；预期结果通过返回值表达，异常仅用于违反契约或非预期故障。
+- 默认依赖 .NET 10 JIT 自动内联；仅在基准或生成代码证明必要时显式使用 `[MethodImpl(MethodImplOptions.AggressiveInlining)]`。

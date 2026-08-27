@@ -4,7 +4,7 @@ namespace Xoderony.Collections;
 
 public ref struct SpanIntSet {
 
-    // 空槽哨兵；不可存入。用 -1 以便能存 0（含 null 的 EqualityComparer hash）。
+    /// <summary>表示空槽的哨兵值；不能作为集合元素存储。</summary>
     public const int Empty = -1;
 
     private Span<int> _slots;
@@ -13,8 +13,9 @@ public ref struct SpanIntSet {
 
     private int _capacity;
 
-    // buffer 长度不必为 2 的幂：实际使用不超过其长度的最大 2 的幂前缀，多出的槽位忽略。
-    // Capacity 为可用长度的一半（负载因子 0.5）。需要精确容量、避免截断浪费时调用 GetBufferLengthForCapacity。
+    /// <summary>使用调用方提供的缓冲区创建集合。</summary>
+    /// <remarks>仅使用不超过缓冲区长度的最大二次幂前缀，并以 0.5 负载因子确定容量；其余槽位不会使用。</remarks>
+    /// <param name="buffer">用于存储元素的缓冲区，长度至少为 2。</param>
     public SpanIntSet(Span<int> buffer) {
         if (buffer.Length < 2) {
             throw new ArgumentException("Buffer length must be at least 2.", nameof(buffer));
@@ -35,9 +36,11 @@ public ref struct SpanIntSet {
 
     public readonly bool IsFull => _count >= _capacity;
 
-    public readonly Span<int> Slots => _slots;
+    public readonly ReadOnlySpan<int> Slots => _slots;
 
-    // 满足指定 capacity 所需的最小 2 的幂 buffer 长度（无截断浪费）。
+    /// <summary>计算容纳指定元素数量所需的最小二次幂缓冲区长度。</summary>
+    /// <param name="capacity">所需元素容量。</param>
+    /// <returns>应分配的槽位数量。</returns>
     public static int GetBufferLengthForCapacity(int capacity) {
         if (capacity <= 0) {
             throw new ArgumentException("Capacity must be greater than zero.", nameof(capacity));
@@ -52,9 +55,6 @@ public ref struct SpanIntSet {
         if (item == Empty) {
             throw new ArgumentException("Item must not be Empty (-1).", nameof(item));
         }
-        if (IsFull) {
-            return AddStatus.Full;
-        }
         var slots = _slots;
         var maxProbeCount = _count + 1;
         var mask = slots.Length - 1;
@@ -62,6 +62,9 @@ public ref struct SpanIntSet {
         for (var probeCount = 0; probeCount < maxProbeCount; probeCount++) {
             ref var slot = ref slots[index];
             if (slot == Empty) {
+                if (IsFull) {
+                    return AddStatus.Full;
+                }
                 slot = item;
                 _count++;
                 return AddStatus.Added;

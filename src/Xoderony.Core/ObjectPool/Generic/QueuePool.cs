@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Diagnostics;
 
 namespace Xoderony.ObjectPool.Generic;
 
@@ -15,10 +16,11 @@ public class QueuePool<T>(int capacity = 16) : IPool<Queue<T>> {
         return _pool.TryPop(out var result) ? result : new();
     }
 
-    /// <summary>清空并归还 Queue；池满或值为 null 时直接丢弃。</summary>
+    /// <summary>清空并归还 Queue；池满时直接丢弃。</summary>
     /// <param name="value">待归还的 Queue，归还后调用方不得继续使用。</param>
     public void Return(Queue<T> value) {
-        if (value is null || _pool.Count >= capacity) {
+        Debug.Assert(value is not null);
+        if (_pool.Count >= capacity) {
             return;
         }
         value.Clear();

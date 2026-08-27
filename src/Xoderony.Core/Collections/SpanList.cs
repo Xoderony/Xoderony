@@ -20,7 +20,14 @@ public ref struct SpanList<T> {
         _equalityComparer = equalityComparer;
     }
 
-    public readonly ref T this[int index] => ref _buffer[index];
+    public readonly ref T this[int index] {
+        get {
+            if ((uint)index >= (uint)_count) {
+                throw new ArgumentOutOfRangeException(nameof(index));
+            }
+            return ref _buffer[index];
+        }
+    }
 
     public readonly int Count => _count;
 
@@ -30,8 +37,8 @@ public ref struct SpanList<T> {
 
     public readonly bool IsFull => _count >= _buffer.Length;
 
-    public readonly EqualityComparerDelegate<T>? EqualityComparer  => _equalityComparer;
-    
+    public readonly EqualityComparerDelegate<T>? EqualityComparer => _equalityComparer;
+
     public readonly Span<T> Buffer => _buffer;
 
     public readonly Span<T> Span => _buffer[.._count];
@@ -49,7 +56,7 @@ public ref struct SpanList<T> {
         _buffer.Clear();
     }
 
-    public bool Add(in T item) {
+    public bool Add(T item) {
         if (IsFull) {
             return false;
         }
@@ -96,7 +103,7 @@ public ref struct SpanList<T> {
         return true;
     }
 
-    public bool Remove(in T item) {
+    public bool Remove(T item) {
         return RemoveAt(IndexOf(item));
     }
 
@@ -116,7 +123,7 @@ public ref struct SpanList<T> {
         return true;
     }
 
-    public bool RemoveUnordered(in T item) {
+    public bool RemoveUnordered(T item) {
         return RemoveAtUnordered(IndexOf(item));
     }
 
@@ -157,7 +164,7 @@ public ref struct SpanList<T> {
         return removedCount;
     }
 
-    public readonly int IndexOf(in T item) {
+    public readonly int IndexOf(T item) {
         var span = Span;
         if (_equalityComparer is not null) {
             for (var i = 0; i < span.Length; i++) {
@@ -176,7 +183,7 @@ public ref struct SpanList<T> {
         return -1;
     }
 
-    public readonly bool Contains(in T item) {
+    public readonly bool Contains(T item) {
         return IndexOf(item) != -1;
     }
 
@@ -189,4 +196,4 @@ public ref struct SpanList<T> {
     }
 }
 
-public delegate bool EqualityComparerDelegate<T>(in T a, in T b);
+public delegate bool EqualityComparerDelegate<T>(T a, T b);
