@@ -17,12 +17,12 @@ public class CoreTests {
     [Fact]
     public void IsNullOrEmpty_CoversNullAndEmpty() {
         string? missing = null;
-        Assert.True(missing.IsNullOrEmpty());
-        Assert.True("".IsNullOrEmpty());
-        Assert.False("x".IsNullOrEmpty());
+        Assert.True(missing.IsNullOrEmpty);
+        Assert.True("".IsNullOrEmpty);
+        Assert.False("x".IsNullOrEmpty);
         ICollection<int>? missingItems = null;
-        Assert.True(missingItems.IsNullOrEmpty());
-        Assert.True(System.Array.Empty<int>().IsNullOrEmpty());
+        Assert.True(missingItems.IsNullOrEmpty);
+        Assert.True(System.Array.Empty<int>().IsNullOrEmpty);
     }
 
     [Fact]

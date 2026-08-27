@@ -1,16 +1,11 @@
-using System.Runtime.CompilerServices;
-
 namespace Xoderony.Extensions;
 
 public static class StringExtensions {
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static bool IsNullOrEmpty(this string value) {
-        return string.IsNullOrEmpty(value);
-    }
+    extension(string? value) {
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static bool IsNullOrWhiteSpace(this string value) {
-        return string.IsNullOrWhiteSpace(value);
+        public bool IsNullOrEmpty => string.IsNullOrEmpty(value);
+
+        public bool IsNullOrWhiteSpace => string.IsNullOrWhiteSpace(value);
     }
 }
