@@ -1,19 +1,18 @@
 using System;
 
-namespace Xoderony {
+namespace Xoderony;
 
-    public sealed class DelegateChannel<TDelegate> : IDelegateSubscriber<TDelegate>, IDelegateDispatcher<TDelegate> where TDelegate : Delegate {
+public sealed class DelegateChannel<TDelegate> : IDelegateSubscriber<TDelegate>, IDelegateDispatcher<TDelegate> where TDelegate : Delegate {
 
-        private TDelegate _handlers;
+    private TDelegate? _handlers;
 
-        TDelegate IDelegateDispatcher<TDelegate>.Handlers => _handlers;
+    public TDelegate? Handlers => _handlers;
 
-        void IDelegateSubscriber<TDelegate>.Subscribe(TDelegate handler) {
-            _handlers = (TDelegate)Delegate.Combine(_handlers, handler);
-        }
+    public void Subscribe(TDelegate handler) {
+        _handlers = (TDelegate?)Delegate.Combine(_handlers, handler);
+    }
 
-        void IDelegateSubscriber<TDelegate>.Unsubscribe(TDelegate handler) {
-            _handlers = (TDelegate)Delegate.Remove(_handlers, handler);
-        }
+    public void Unsubscribe(TDelegate handler) {
+        _handlers = (TDelegate?)Delegate.Remove(_handlers, handler);
     }
 }

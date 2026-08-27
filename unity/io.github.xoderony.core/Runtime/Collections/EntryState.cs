@@ -1,9 +1,8 @@
-namespace Xoderony.Collections {
+namespace Xoderony.Collections;
 
-    internal enum EntryState : byte {
+internal enum EntryState : byte {
 
-        Unused = 0,
-        Used
+    Unused = 0,
+    Used
 
-    }
 }

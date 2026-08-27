@@ -3,34 +3,39 @@ using System.Runtime.CompilerServices;
 
 namespace Xoderony.Collections;
 
-public ref struct SpanIntMap<TValue> {
+// 固定容量、可 stackalloc 的 int→TValue 开放寻址表。
+// TValue 须为非托管：连续 Entry 布局才有相对 Dictionary 的明显缓存优势；引用类型请用 Dictionary + CollectionsMarshal。
+public ref struct SpanIntMap<TValue> where TValue : unmanaged {
 
     private Span<Entry> _entries;
 
-    private int _count;
+    private int _count = 0;
 
+    private int _capacity;
+
+    // buffer 长度不必为 2 的幂：实际使用不超过其长度的最大 2 的幂前缀，多出的槽位忽略。
+    // Capacity 为可用长度的一半（负载因子 0.5）。需要精确容量、避免截断浪费时调用 GetBufferLengthForCapacity。
     public SpanIntMap(Span<Entry> buffer) {
-        if (buffer.Length <= 0) {
-            throw new ArgumentException("Buffer length must be greater than zero.", nameof(buffer));
+        if (buffer.Length < 2) {
+            throw new ArgumentException("Buffer length must be at least 2.", nameof(buffer));
         }
-        if ((buffer.Length & (buffer.Length - 1)) != 0) {
-            throw new ArgumentException("Buffer length must be a power of two.", nameof(buffer));
-        }
-        _entries = buffer;
-        _count = 0;
+        var usableLength = 1 << int.Log2(buffer.Length);
+        _entries = buffer[..usableLength];
+        _capacity = usableLength >> 1;
         _entries.Clear();
     }
 
     public readonly int Count => _count;
 
-    public readonly int Capacity => _entries.Length >> 1;
+    public readonly int Capacity => _capacity;
 
-    public readonly int BufferLength => _entries.Length;
+    public readonly int EntryCount => _entries.Length;
 
-    public readonly int RemainingCapacity => Capacity - _count;
+    public readonly int RemainingCapacity => _capacity - _count;
 
-    public readonly bool IsFull => _count >= Capacity;
+    public readonly bool IsFull => _count >= _capacity;
 
+    // 满足指定 capacity 所需的最小 2 的幂 buffer 长度（无截断浪费）。
     public static int GetBufferLengthForCapacity(int capacity) {
         if (capacity <= 0) {
             throw new ArgumentException("Capacity must be greater than zero.", nameof(capacity));
@@ -38,12 +43,7 @@ public ref struct SpanIntMap<TValue> {
         if (capacity > 5120) {
             throw new ArgumentException("Capacity must be less than or equal to 5120.", nameof(capacity));
         }
-        var requiredBufferLength = capacity * 2;
-        var bufferLength = 1;
-        while (bufferLength < requiredBufferLength) {
-            bufferLength <<= 1;
-        }
-        return bufferLength;
+        return 1 << (int.Log2((capacity * 2) - 1) + 1);
     }
 
     public AddStatus Add(int key, TValue value) {

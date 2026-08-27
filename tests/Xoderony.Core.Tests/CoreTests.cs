@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using Xoderony.Extensions;
+using Xoderony.ObjectPool;
 using Xoderony.ObjectPool.Generic;
 using Xunit;
 
@@ -15,26 +16,26 @@ public class CoreTests {
     }
 
     [Fact]
-    public void IsNullOrEmpty_CoversNullAndEmpty() {
-        string? missing = null;
+    public void IsNullOrEmpty_CoversNullAndEmptyArrays() {
+        int[]? missing = null;
         Assert.True(missing.IsNullOrEmpty);
-        Assert.True("".IsNullOrEmpty);
-        Assert.False("x".IsNullOrEmpty);
-        ICollection<int>? missingItems = null;
-        Assert.True(missingItems.IsNullOrEmpty);
         Assert.True(System.Array.Empty<int>().IsNullOrEmpty);
+        Assert.False(new[] { 1 }.IsNullOrEmpty);
     }
 
     [Fact]
     public void ListPool_ReusesInstanceAfterDispose() {
         List<int> first;
-        using (ListPool<int>.Rent(out first)) {
+        List<int> rented;
+        using (ListPool<int>.Shared.Rent(out first)) {
+            rented = first;
             first.Add(1);
         }
+        Assert.Null(first);
 
         List<int> second;
-        using (ListPool<int>.Rent(out second)) {
-            Assert.Same(first, second);
+        using (ListPool<int>.Shared.Rent(out second)) {
+            Assert.Same(rented, second);
             Assert.Empty(second);
         }
     }
@@ -48,5 +49,23 @@ public class CoreTests {
         pool.Return(a);
         pool.Return(b);
         Assert.Same(a, pool.Rent());
+    }
+
+    [Fact]
+    public void CustomPool_RentScope_ReturnsToSamePool() {
+        var pool = new ListPool<int>(capacity: 2);
+        List<int> first;
+        List<int> rented;
+        using (pool.Rent(out first)) {
+            rented = first;
+            first.Add(1);
+        }
+        Assert.Null(first);
+
+        List<int> second;
+        using (pool.Rent(out second)) {
+            Assert.Same(rented, second);
+            Assert.Empty(second);
+        }
     }
 }

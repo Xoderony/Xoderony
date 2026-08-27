@@ -1,7 +1,7 @@
-namespace Xoderony.Collections {
-    public enum AddStatus {
-        Added,
-        Duplicate,
-        Full
-    }
+namespace Xoderony.Collections;
+
+public enum AddStatus {
+    Added,
+    Duplicate,
+    Full
 }

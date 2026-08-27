@@ -5,11 +5,11 @@ namespace Xoderony.Collections;
 
 public ref struct SpanList<T> {
 
-    private Span<T> _buffer;
+    private readonly Span<T> _buffer;
+
+    private readonly EqualityComparerDelegate<T>? _equalityComparer;
 
     private int _count;
-
-    private EqualityComparerDelegate<T>? _equalityComparer;
 
     public SpanList(Span<T> span, int count = 0, EqualityComparerDelegate<T>? equalityComparer = null) {
         if ((uint)count > (uint)span.Length) {
@@ -30,11 +30,8 @@ public ref struct SpanList<T> {
 
     public readonly bool IsFull => _count >= _buffer.Length;
 
-    public EqualityComparerDelegate<T>? EqualityComparer {
-        readonly get => _equalityComparer;
-        set => _equalityComparer = value;
-    }
-
+    public readonly EqualityComparerDelegate<T>? EqualityComparer  => _equalityComparer;
+    
     public readonly Span<T> Buffer => _buffer;
 
     public readonly Span<T> Span => _buffer[.._count];

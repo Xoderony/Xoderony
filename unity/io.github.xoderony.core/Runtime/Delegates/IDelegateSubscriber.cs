@@ -1,12 +1,11 @@
 using System;
 
-namespace Xoderony {
+namespace Xoderony;
 
-    public interface IDelegateSubscriber<TDelegate> where TDelegate : Delegate {
+public interface IDelegateSubscriber<TDelegate> where TDelegate : Delegate {
 
-        void Subscribe(TDelegate handler);
+    void Subscribe(TDelegate handler);
 
-        void Unsubscribe(TDelegate handler);
+    void Unsubscribe(TDelegate handler);
 
-    }
 }

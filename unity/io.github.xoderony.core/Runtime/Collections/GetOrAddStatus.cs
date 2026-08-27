@@ -1,8 +1,7 @@
-namespace Xoderony.Collections {
+namespace Xoderony.Collections;
 
-    public enum GetOrAddStatus {
-        Found,
-        Added,
-        Full
-    }
+public enum GetOrAddStatus {
+    Found,
+    Added,
+    Full
 }
