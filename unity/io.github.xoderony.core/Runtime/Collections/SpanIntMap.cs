@@ -3,8 +3,9 @@ using System.Runtime.CompilerServices;
 
 namespace Xoderony.Collections;
 
-// 固定容量、可 stackalloc 的 int→TValue 开放寻址表。
-// TValue 须为非托管：连续 Entry 布局才有相对 Dictionary 的明显缓存优势；引用类型请用 Dictionary + CollectionsMarshal。
+/// <summary>基于连续缓冲区的固定容量 int 到值开放寻址表，可使用 stackalloc 分配存储。</summary>
+/// <remarks><typeparamref name="TValue"/> 必须为非托管类型；引用类型应使用 <c>Dictionary</c> 与 <c>CollectionsMarshal</c>。</remarks>
+/// <typeparam name="TValue">非托管值类型。</typeparam>
 public ref struct SpanIntMap<TValue> where TValue : unmanaged {
 
     private Span<Entry> _entries;
@@ -13,8 +14,9 @@ public ref struct SpanIntMap<TValue> where TValue : unmanaged {
 
     private int _capacity;
 
-    // buffer 长度不必为 2 的幂：实际使用不超过其长度的最大 2 的幂前缀，多出的槽位忽略。
-    // Capacity 为可用长度的一半（负载因子 0.5）。需要精确容量、避免截断浪费时调用 GetBufferLengthForCapacity。
+    /// <summary>使用调用方提供的缓冲区创建映射。</summary>
+    /// <remarks>仅使用不超过缓冲区长度的最大二次幂前缀，并以 0.5 负载因子确定容量；其余槽位不会使用。</remarks>
+    /// <param name="buffer">用于存储条目的缓冲区，长度至少为 2。</param>
     public SpanIntMap(Span<Entry> buffer) {
         if (buffer.Length < 2) {
             throw new ArgumentException("Buffer length must be at least 2.", nameof(buffer));
@@ -35,7 +37,9 @@ public ref struct SpanIntMap<TValue> where TValue : unmanaged {
 
     public readonly bool IsFull => _count >= _capacity;
 
-    // 满足指定 capacity 所需的最小 2 的幂 buffer 长度（无截断浪费）。
+    /// <summary>计算容纳指定元素数量所需的最小二次幂缓冲区长度。</summary>
+    /// <param name="capacity">所需元素容量。</param>
+    /// <returns>应分配的条目数量。</returns>
     public static int GetBufferLengthForCapacity(int capacity) {
         if (capacity <= 0) {
             throw new ArgumentException("Capacity must be greater than zero.", nameof(capacity));
@@ -47,15 +51,15 @@ public ref struct SpanIntMap<TValue> where TValue : unmanaged {
     }
 
     public AddStatus Add(int key, TValue value) {
-        if (IsFull) {
-            return AddStatus.Full;
-        }
         var maxProbeCount = _count + 1;
         var mask = _entries.Length - 1;
         var index = GetStartIndexForKey(key, mask);
         for (var probeCount = 0; probeCount < maxProbeCount; probeCount++) {
             ref var entry = ref _entries[index];
             if (entry.State == EntryState.Unused) {
+                if (IsFull) {
+                    return AddStatus.Full;
+                }
                 entry.Key = key;
                 entry.Value = value;
                 entry.State = EntryState.Used;
@@ -131,7 +135,11 @@ public ref struct SpanIntMap<TValue> where TValue : unmanaged {
         throw new InvalidOperationException("Probe count exceeded expected search range.");
     }
 
-    public ref TValue GetValueRefOrAddDefault(int key, out GetOrAddStatus status) {
+    /// <summary>获取现有值的引用，或在容量允许时添加默认值并返回其引用。</summary>
+    /// <param name="key">要查找或添加的键。</param>
+    /// <param name="status">指示键已存在、已添加，或映射已满。</param>
+    /// <returns>状态为 <see cref="GetOrAddStatus.Found"/> 或 <see cref="GetOrAddStatus.Added"/> 时返回有效的可写引用；状态为 <see cref="GetOrAddStatus.Full"/> 时返回不得解引用的 null ref。</returns>
+    public ref TValue GetValueRefOrAddDefaultOrNullRef(int key, out GetOrAddStatus status) {
         var maxProbeCount = _count + 1;
         var mask = _entries.Length - 1;
         var index = GetStartIndexForKey(key, mask);

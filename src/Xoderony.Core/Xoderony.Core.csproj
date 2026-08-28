@@ -5,6 +5,6 @@
     <AssemblyName>Xoderony.Core</AssemblyName>
     <PackageId>Xoderony.Core</PackageId>
     <AllowUnsafeBlocks>false</AllowUnsafeBlocks>
-    <Description>Collections, serialization buffers, delegate/value channels, BCL extensions, and object pools. No UnityEngine dependency.</Description>
+    <Description>Collections, serialization buffers, delegate/value channels, BCL extensions, object pools, and Q16 fixed-point. No UnityEngine dependency.</Description>
   </PropertyGroup>
 </Project>
