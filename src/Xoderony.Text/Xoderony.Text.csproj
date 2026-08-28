@@ -1,0 +1,10 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <RootNamespace>Xoderony.Text</RootNamespace>
+    <AssemblyName>Xoderony.Text</AssemblyName>
+    <PackageId>Xoderony.Text</PackageId>
+    <AllowUnsafeBlocks>false</AllowUnsafeBlocks>
+    <Description>Span-based text construction and formatting utilities.</Description>
+  </PropertyGroup>
+</Project>
