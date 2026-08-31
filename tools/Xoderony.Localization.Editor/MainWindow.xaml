@@ -1,0 +1,294 @@
+<Window x:Class="Xoderony.Localization.Editor.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:local="clr-namespace:Xoderony.Localization.Editor"
+        Style="{StaticResource EditorWindowStyle}"
+        Width="1280"
+        Height="800"
+        MinWidth="760"
+        MinHeight="560"
+        UseLayoutRounding="True"
+        SnapsToDevicePixels="True"
+        Loaded="OnLoaded"
+        Closing="OnClosing"
+        PreviewKeyDown="OnPreviewKeyDown">
+  <Window.Resources>
+    <DataTemplate x:Key="NameCellTemplate">
+      <Grid ToolTip="{Binding Node.FullKey}">
+        <Grid.ColumnDefinitions>
+          <ColumnDefinition Width="30" />
+          <ColumnDefinition Width="*" />
+        </Grid.ColumnDefinitions>
+        <TextBlock Grid.Column="0"
+                   Text="{Binding IconGlyph}"
+                   Style="{StaticResource IconTextStyle}"
+                   Foreground="{DynamicResource VsMutedTextBrush}"
+                   HorizontalAlignment="Center"
+                   VerticalAlignment="Center" />
+        <TextBlock Grid.Column="1"
+                   Text="{Binding DisplayName}"
+                   VerticalAlignment="Center" />
+      </Grid>
+    </DataTemplate>
+  </Window.Resources>
+
+  <Grid>
+    <Grid.RowDefinitions>
+      <RowDefinition Height="Auto" />
+      <RowDefinition Height="Auto" />
+      <RowDefinition Height="*" />
+      <RowDefinition Height="Auto" />
+    </Grid.RowDefinitions>
+
+    <Border Grid.Row="0"
+            Background="{DynamicResource VsToolbarBrush}"
+            BorderBrush="{DynamicResource VsBorderBrush}"
+            BorderThickness="0,0,0,1"
+            Padding="8,6">
+      <WrapPanel Orientation="Horizontal">
+        <StackPanel Orientation="Horizontal" Margin="0,0,10,0">
+          <Button Style="{StaticResource ToolbarButtonStyle}"
+                  Click="OpenDirectory"
+                  ToolTip="{Binding [toolbar.open_tooltip]}">
+            <StackPanel Orientation="Horizontal">
+              <TextBlock Text="&#xE8E5;" Style="{StaticResource ToolbarIconTextStyle}" />
+              <TextBlock Text="{Binding [toolbar.open]}" />
+            </StackPanel>
+          </Button>
+          <Button x:Name="SaveButton"
+                  Style="{StaticResource ToolbarButtonStyle}"
+                  Click="Save"
+                  ToolTip="{Binding [toolbar.save_tooltip]}">
+            <StackPanel Orientation="Horizontal">
+              <TextBlock Text="&#xE74E;" Style="{StaticResource ToolbarIconTextStyle}" />
+              <TextBlock Text="{Binding [toolbar.save]}" />
+            </StackPanel>
+          </Button>
+          <Button x:Name="GenerateKeysButton"
+                  Style="{StaticResource ToolbarButtonStyle}"
+                  Click="GenerateKeys"
+                  ToolTip="{Binding [toolbar.generate_keys_tooltip]}">
+            <StackPanel Orientation="Horizontal">
+              <TextBlock Text="&#xE943;" Style="{StaticResource ToolbarIconTextStyle}" />
+              <TextBlock Text="{Binding [toolbar.generate_keys]}" />
+            </StackPanel>
+          </Button>
+        </StackPanel>
+
+        <StackPanel Orientation="Horizontal" Margin="0,0,10,0">
+          <Button x:Name="AddGroupButton" Style="{StaticResource ToolbarButtonStyle}" Click="AddGroup" ToolTip="{Binding [toolbar.add_group_tooltip]}">
+            <StackPanel Orientation="Horizontal">
+              <TextBlock Text="&#xE8F4;" Style="{StaticResource ToolbarIconTextStyle}" />
+              <TextBlock Text="{Binding [toolbar.add_group]}" />
+            </StackPanel>
+          </Button>
+          <Button x:Name="AddTextEntryButton" Style="{StaticResource ToolbarButtonStyle}" Click="AddTextEntry" ToolTip="{Binding [toolbar.add_text_entry_tooltip]}">
+            <StackPanel Orientation="Horizontal">
+              <TextBlock Text="&#xE710;" Style="{StaticResource ToolbarIconTextStyle}" />
+              <TextBlock Text="{Binding [toolbar.add_text_entry]}" />
+            </StackPanel>
+          </Button>
+          <Button x:Name="AddLocaleButton" Style="{StaticResource ToolbarButtonStyle}" Click="AddLocale" ToolTip="{Binding [toolbar.add_locale_tooltip]}">
+            <StackPanel Orientation="Horizontal">
+              <TextBlock Text="&#xE909;" Style="{StaticResource ToolbarIconTextStyle}" />
+              <TextBlock Text="{Binding [toolbar.add_locale]}" />
+            </StackPanel>
+          </Button>
+        </StackPanel>
+
+        <StackPanel Orientation="Horizontal">
+          <Button x:Name="RenameButton" Style="{StaticResource ToolbarButtonStyle}" Click="Rename" ToolTip="{Binding [toolbar.rename_tooltip]}">
+            <StackPanel Orientation="Horizontal">
+              <TextBlock Text="&#xE8AC;" Style="{StaticResource ToolbarIconTextStyle}" />
+              <TextBlock Text="{Binding [toolbar.rename]}" />
+            </StackPanel>
+          </Button>
+          <Button x:Name="MoveButton" Style="{StaticResource ToolbarButtonStyle}" Click="MoveSelection" ToolTip="{Binding [toolbar.move_tooltip]}">
+            <StackPanel Orientation="Horizontal">
+              <TextBlock Text="&#xE8DE;" Style="{StaticResource ToolbarIconTextStyle}" />
+              <TextBlock Text="{Binding [toolbar.move]}" />
+            </StackPanel>
+          </Button>
+          <Button x:Name="CopyButton" Style="{StaticResource ToolbarButtonStyle}" Click="CopySelection" ToolTip="{Binding [toolbar.copy_tooltip]}">
+            <StackPanel Orientation="Horizontal">
+              <TextBlock Text="&#xE8C8;" Style="{StaticResource ToolbarIconTextStyle}" />
+              <TextBlock Text="{Binding [toolbar.copy]}" />
+            </StackPanel>
+          </Button>
+          <Button x:Name="PasteButton" Style="{StaticResource ToolbarButtonStyle}" Click="PasteClipboard" ToolTip="{Binding [toolbar.paste_tooltip]}">
+            <StackPanel Orientation="Horizontal">
+              <TextBlock Text="&#xE77F;" Style="{StaticResource ToolbarIconTextStyle}" />
+              <TextBlock Text="{Binding [toolbar.paste]}" />
+            </StackPanel>
+          </Button>
+          <Button x:Name="RemoveButton" Style="{StaticResource DangerToolbarButtonStyle}" Click="Remove" ToolTip="{Binding [toolbar.remove_tooltip]}">
+            <StackPanel Orientation="Horizontal">
+              <TextBlock Text="&#xE74D;" Style="{StaticResource ToolbarIconTextStyle}" />
+              <TextBlock Text="{Binding [toolbar.remove]}" />
+            </StackPanel>
+          </Button>
+        </StackPanel>
+
+        <StackPanel Orientation="Horizontal" Margin="12,0,0,0" VerticalAlignment="Center">
+          <TextBlock Text="{Binding [language.label]}" Margin="0,0,7,0" VerticalAlignment="Center" />
+          <ComboBox x:Name="LanguageComboBox"
+                    Width="150"
+                    ItemsSource="{Binding Cultures}"
+                    SelectedItem="{Binding Culture, Mode=OneWay}"
+                    SelectionChanged="LanguageChanged">
+            <ComboBox.ItemTemplate>
+              <DataTemplate>
+                <TextBlock Text="{Binding NativeName}" />
+              </DataTemplate>
+            </ComboBox.ItemTemplate>
+          </ComboBox>
+        </StackPanel>
+
+        <StackPanel Orientation="Horizontal" Margin="12,0,0,0" VerticalAlignment="Center">
+          <TextBlock Text="{Binding [theme.label]}" Margin="0,0,7,0" VerticalAlignment="Center" />
+          <ComboBox x:Name="ThemeComboBox"
+                    Width="120"
+                    SelectionChanged="ThemeChanged">
+            <ComboBoxItem Content="{Binding [theme.light]}" Tag="{x:Static local:EditorTheme.Light}" />
+            <ComboBoxItem Content="{Binding [theme.dark]}" Tag="{x:Static local:EditorTheme.Dark}" />
+          </ComboBox>
+        </StackPanel>
+      </WrapPanel>
+    </Border>
+
+    <Border Grid.Row="1"
+            Background="{DynamicResource VsSurfaceBrush}"
+            BorderBrush="{DynamicResource VsBorderBrush}"
+            BorderThickness="0,0,0,1"
+            Padding="12,8">
+      <Grid>
+        <Grid.ColumnDefinitions>
+          <ColumnDefinition Width="Auto" />
+          <ColumnDefinition Width="3*" MinWidth="160" />
+          <ColumnDefinition Width="2*" MinWidth="220" MaxWidth="360" />
+        </Grid.ColumnDefinitions>
+        <TextBlock Grid.Column="0" Text="{Binding [path.label]}" Style="{StaticResource SectionTitleTextStyle}" VerticalAlignment="Center" />
+        <Grid Grid.Column="1" Margin="12,0">
+          <TextBlock x:Name="PathPlaceholderText"
+                     Text="{Binding [path.unopened]}"
+                     Foreground="{DynamicResource VsMutedTextBrush}"
+                     VerticalAlignment="Center" />
+          <ScrollViewer x:Name="BreadcrumbScrollViewer"
+                        HorizontalScrollBarVisibility="Auto"
+                        VerticalScrollBarVisibility="Disabled"
+                        Visibility="Collapsed">
+            <StackPanel x:Name="BreadcrumbPanel" Orientation="Horizontal" />
+          </ScrollViewer>
+        </Grid>
+        <Grid Grid.Column="2" VerticalAlignment="Center">
+          <TextBox x:Name="SearchTextBox"
+                   Height="30"
+                   Padding="30,4,28,4"
+                   TextChanged="SearchChanged" />
+          <TextBlock Text="&#xE721;"
+                     Style="{StaticResource IconTextStyle}"
+                     Foreground="{DynamicResource VsMutedTextBrush}"
+                     Margin="9,0,0,0"
+                     HorizontalAlignment="Left"
+                     VerticalAlignment="Center"
+                     IsHitTestVisible="False" />
+          <TextBlock Text="{Binding [search.placeholder]}"
+                     Foreground="{DynamicResource VsMutedTextBrush}"
+                     Margin="30,0,0,0"
+                     VerticalAlignment="Center"
+                     IsHitTestVisible="False">
+            <TextBlock.Style>
+              <Style TargetType="{x:Type TextBlock}">
+                <Setter Property="Visibility" Value="Collapsed" />
+                <Style.Triggers>
+                  <DataTrigger Binding="{Binding Text, ElementName=SearchTextBox}" Value="">
+                    <Setter Property="Visibility" Value="Visible" />
+                  </DataTrigger>
+                </Style.Triggers>
+              </Style>
+            </TextBlock.Style>
+          </TextBlock>
+          <Button Width="26"
+                  Height="26"
+                  Padding="0"
+                  Margin="0,2,2,2"
+                  HorizontalAlignment="Right"
+                  Style="{StaticResource ToolbarButtonStyle}"
+                  Click="ClearSearch"
+                  ToolTip="{Binding [search.clear_tooltip]}">
+            <TextBlock Text="&#xE711;" Style="{StaticResource SmallIconTextStyle}" />
+          </Button>
+        </Grid>
+      </Grid>
+    </Border>
+
+    <Grid Grid.Row="2" Background="{DynamicResource VsSurfaceBrush}">
+      <DataGrid x:Name="TableGrid"
+                Margin="10"
+                AutoGenerateColumns="False"
+                CanUserAddRows="False"
+                CanUserDeleteRows="False"
+                CanUserReorderColumns="True"
+                CanUserResizeColumns="True"
+                CanUserSortColumns="False"
+                FrozenColumnCount="1"
+                IsReadOnly="True"
+                SelectionChanged="SelectionChanged"
+                MouseDoubleClick="HandleCellDoubleClick"
+                PreviewMouseRightButtonDown="SelectRowOnRightClick">
+        <DataGrid.ContextMenu>
+          <ContextMenu>
+            <MenuItem Header="{Binding [context.add_group]}" Click="AddGroup" />
+            <MenuItem Header="{Binding [context.add_text_entry]}" Click="AddTextEntry" />
+            <MenuItem Header="{Binding [context.add_locale]}" Click="AddLocale" />
+            <Separator />
+            <MenuItem x:Name="RenameMenuItem" Header="{Binding [context.rename]}" InputGestureText="F2" Click="Rename" />
+            <MenuItem x:Name="MoveMenuItem" Header="{Binding [context.move]}" Click="MoveSelection" />
+            <Separator />
+            <MenuItem x:Name="CopyMenuItem" Header="{Binding [context.copy]}" InputGestureText="Ctrl+C" Click="CopySelection" />
+            <MenuItem x:Name="PasteMenuItem" Header="{Binding [context.paste]}" InputGestureText="Ctrl+V" Click="PasteClipboard" />
+            <Separator />
+            <MenuItem Header="{Binding [context.remove]}" InputGestureText="Delete" Foreground="{DynamicResource VsDangerBrush}" Click="Remove" />
+          </ContextMenu>
+        </DataGrid.ContextMenu>
+      </DataGrid>
+
+      <Border x:Name="EmptyState"
+              Margin="10"
+              Background="{DynamicResource VsSurfaceBrush}"
+              BorderBrush="{DynamicResource VsBorderBrush}"
+              BorderThickness="1">
+        <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
+          <TextBlock Text="&#xE8E5;"
+                     Style="{StaticResource EmptyStateIconTextStyle}"
+                     Foreground="{DynamicResource VsAccentBrush}"
+                     HorizontalAlignment="Center"
+                     Margin="0,0,0,14" />
+          <TextBlock Text="{Binding [empty_state.title]}" Style="{StaticResource EmptyStateTitleTextStyle}" HorizontalAlignment="Center" />
+          <TextBlock Text="{Binding [empty_state.description]}"
+                     Foreground="{DynamicResource VsMutedTextBrush}"
+                     HorizontalAlignment="Center"
+                     Margin="0,6,0,18" />
+          <Button Click="OpenDirectory" Padding="18,7" Content="{Binding [empty_state.select_directory]}" />
+        </StackPanel>
+      </Border>
+    </Grid>
+
+    <Border Grid.Row="3" Background="{DynamicResource VsAccentBrush}" Padding="10,5">
+      <Grid>
+        <Grid.ColumnDefinitions>
+          <ColumnDefinition Width="*" />
+          <ColumnDefinition Width="Auto" />
+        </Grid.ColumnDefinitions>
+        <TextBlock x:Name="StatusText"
+                   Grid.Column="0"
+                   Foreground="White"
+                   TextTrimming="CharacterEllipsis" />
+        <TextBlock x:Name="SummaryText"
+                   Grid.Column="1"
+                   Margin="16,0,0,0"
+                   Foreground="#DDEEFF" />
+      </Grid>
+    </Border>
+  </Grid>
+</Window>

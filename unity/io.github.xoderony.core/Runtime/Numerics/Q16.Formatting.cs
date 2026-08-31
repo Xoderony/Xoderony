@@ -4,6 +4,8 @@ namespace Xoderony.Numerics;
 
 public partial struct Q16 {
 
+    private const int ToStringBufferLength = 32;
+
     public override readonly string ToString() {
         return ToString(null, null);
     }
@@ -13,28 +15,48 @@ public partial struct Q16 {
     }
 
     public readonly string ToString(string? format, IFormatProvider? formatProvider) {
-        Span<char> buffer = stackalloc char[32];
-        if (!TryFormat(buffer, out var charsWritten, format, formatProvider)) {
-            throw new FormatException("The format of Q16 is invalid or too long for the destination buffer.");
+        Span<char> buffer = stackalloc char[ToStringBufferLength];
+        if (TryFormat(buffer, out var charsWritten, format, formatProvider)) {
+            return new string(buffer[..charsWritten]);
         }
-        return new string(buffer[..charsWritten]);
+        var numerator = RawValue.ToString(format, formatProvider);
+        var denominator = Scale.ToString(format, formatProvider);
+        return string.Concat(numerator, "/", denominator);
     }
 
     public readonly bool TryFormat(Span<char> destination, out int charsWritten, ReadOnlySpan<char> format, IFormatProvider? provider) {
-        if (!rawValue.TryFormat(destination, out var rawWritten, format, provider) ) {
+        if (!RawValue.TryFormat(destination, out var numeratorWritten, format, provider)) {
             charsWritten = 0;
             return false;
         }
-        if (rawWritten == destination.Length){
+        if (numeratorWritten == destination.Length) {
             charsWritten = 0;
             return false;
         }
-        destination[rawWritten] = '/';
-        if (!OneRawValue.TryFormat(destination[(rawWritten + 1)..], out var denomWritten, format, provider)) {
+        destination[numeratorWritten] = '/';
+        if (!Scale.TryFormat(destination[(numeratorWritten + 1)..], out var denominatorWritten, format, provider)) {
             charsWritten = 0;
             return false;
         }
-        charsWritten = rawWritten + 1 + denomWritten;
+        charsWritten = numeratorWritten + 1 + denominatorWritten;
+        return true;
+    }
+
+    public readonly bool TryFormat(Span<byte> utf8Destination, out int bytesWritten, ReadOnlySpan<char> format, IFormatProvider? provider) {
+        if (!RawValue.TryFormat(utf8Destination, out var numeratorWritten, format, provider)) {
+            bytesWritten = 0;
+            return false;
+        }
+        if (numeratorWritten == utf8Destination.Length) {
+            bytesWritten = 0;
+            return false;
+        }
+        utf8Destination[numeratorWritten] = (byte)'/';
+        if (!Scale.TryFormat(utf8Destination[(numeratorWritten + 1)..], out var denominatorWritten, format, provider)) {
+            bytesWritten = 0;
+            return false;
+        }
+        bytesWritten = numeratorWritten + 1 + denominatorWritten;
         return true;
     }
 }

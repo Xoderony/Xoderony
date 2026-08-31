@@ -5,6 +5,10 @@
     <AssemblyName>Xoderony.Text</AssemblyName>
     <PackageId>Xoderony.Text</PackageId>
     <AllowUnsafeBlocks>false</AllowUnsafeBlocks>
+    <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
     <Description>Span-based text construction and formatting utilities.</Description>
   </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="..\..\unity\io.github.xoderony.text\Runtime\**\*.cs" Link="%(RecursiveDir)%(Filename)%(Extension)" />
+  </ItemGroup>
 </Project>

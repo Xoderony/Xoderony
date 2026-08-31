@@ -1,0 +1,14 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <RootNamespace>Xoderony.Localization</RootNamespace>
+    <AssemblyName>Xoderony.Localization</AssemblyName>
+    <PackageId>Xoderony.Localization</PackageId>
+    <AllowUnsafeBlocks>false</AllowUnsafeBlocks>
+    <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
+    <Description>Dependency-free localization contracts for Unity and .NET applications.</Description>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="..\..\unity\io.github.xoderony.localization\Runtime\**\*.cs" Exclude="..\..\unity\io.github.xoderony.localization\Runtime\Json\**\*.cs;..\..\unity\io.github.xoderony.localization\Runtime\Tooling\**\*.cs" Link="%(RecursiveDir)%(Filename)%(Extension)" />
+  </ItemGroup>
+</Project>

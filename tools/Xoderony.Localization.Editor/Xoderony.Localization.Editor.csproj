@@ -1,0 +1,19 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net10.0-windows</TargetFramework>
+    <RootNamespace>Xoderony.Localization.Editor</RootNamespace>
+    <AssemblyName>Xoderony.Localization.Editor</AssemblyName>
+    <UseWPF>true</UseWPF>
+    <IsPackable>false</IsPackable>
+    <Description>Desktop editor for Xoderony JSON string tables.</Description>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\Xoderony.Localization\Xoderony.Localization.csproj" />
+    <ProjectReference Include="..\..\src\Xoderony.Localization.Json\Xoderony.Localization.Json.csproj" />
+    <ProjectReference Include="..\..\src\Xoderony.Localization.Tooling\Xoderony.Localization.Tooling.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Update="Localization\*.json" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+  </ItemGroup>
+</Project>

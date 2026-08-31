@@ -14,7 +14,7 @@
 https://github.com/Xoderony/Xoderony.git?path=unity/io.github.xoderony.core
 ```
 
-权威源码在仓库 `src/Xoderony.Core/`；编译 `net10.0` 后同步到本目录。
+权威源码直接位于本包的 `Runtime/`；仓库中的 `src/Xoderony.Core/Xoderony.Core.csproj` 通过链接编译项引用同一份源码。
 
 ## 兼容性
 

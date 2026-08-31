@@ -1,0 +1,28 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <Import Project="Xoderony.Logging.Unity.local.props" Condition="Exists('Xoderony.Logging.Unity.local.props')" />
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <RootNamespace>Xoderony.Logging</RootNamespace>
+    <AssemblyName>Xoderony.Logging.Unity</AssemblyName>
+    <PackageId>Xoderony.Logging.Unity</PackageId>
+    <IsPackable>false</IsPackable>
+    <AllowUnsafeBlocks>false</AllowUnsafeBlocks>
+    <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
+    <Description>Unity Debug logger and default extensions for Xoderony.Logging.</Description>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="..\..\unity\io.github.xoderony.logging\Runtime\Unity\**\*.cs" Link="%(RecursiveDir)%(Filename)%(Extension)" />
+    <ProjectReference Include="..\Xoderony.Logging\Xoderony.Logging.csproj" />
+    <Reference Include="UnityEngine.CoreModule">
+      <HintPath>$(UnityManagedPath)\UnityEngine.CoreModule.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="UnityEngine.SharedInternalsModule">
+      <HintPath>$(UnityManagedPath)\UnityEngine.SharedInternalsModule.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+  </ItemGroup>
+  <Target Name="ValidateUnityManagedPath" BeforeTargets="ResolveAssemblyReferences" Condition="!Exists('$(UnityManagedPath)\UnityEngine.CoreModule.dll') Or !Exists('$(UnityManagedPath)\UnityEngine.SharedInternalsModule.dll')">
+    <Error Text="Set UnityManagedPath in src/Xoderony.Logging.Unity/Xoderony.Logging.Unity.local.props to the Editor/Data/Managed/UnityEngine directory of an installed Unity Editor." />
+  </Target>
+</Project>

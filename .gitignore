@@ -26,6 +26,9 @@ coverage*.info
 *.userprefs
 *.DotSettings.user
 
+# Machine-specific Unity reference paths
+src/Xoderony.Logging.Unity/Xoderony.Logging.Unity.local.props
+
 # VS Code: keep shared launch and task definitions
 .vscode/*
 !.vscode/launch.json

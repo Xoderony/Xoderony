@@ -1,0 +1,69 @@
+<Window x:Class="Xoderony.Localization.Editor.MoveDestinationDialog"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Style="{StaticResource EditorWindowStyle}"
+        Width="480"
+        Height="560"
+        MinWidth="400"
+        MinHeight="420"
+        ResizeMode="CanResizeWithGrip"
+        ShowInTaskbar="False"
+        WindowStartupLocation="CenterOwner"
+        UseLayoutRounding="True"
+        SnapsToDevicePixels="True">
+  <Grid Margin="16">
+    <Grid.RowDefinitions>
+      <RowDefinition Height="Auto" />
+      <RowDefinition Height="*" />
+      <RowDefinition Height="Auto" />
+      <RowDefinition Height="Auto" />
+    </Grid.RowDefinitions>
+
+    <TextBlock x:Name="MessageText" Margin="0,0,0,12" TextWrapping="Wrap" />
+
+    <Border Grid.Row="1"
+            Background="{DynamicResource VsSurfaceBrush}"
+            BorderBrush="{DynamicResource VsBorderBrush}"
+            BorderThickness="1">
+      <TreeView x:Name="GroupTree"
+                Background="Transparent"
+                Foreground="{DynamicResource VsTextBrush}"
+                BorderThickness="0"
+                Padding="6"
+                SelectedItemChanged="GroupSelectionChanged"
+                MouseDoubleClick="GroupTreeDoubleClick">
+        <TreeView.ItemTemplate>
+          <HierarchicalDataTemplate ItemsSource="{Binding Children}">
+            <StackPanel Orientation="Horizontal">
+              <TextBlock Text="&#xE8B7;"
+                         Style="{StaticResource IconTextStyle}"
+                         Foreground="{DynamicResource VsMutedTextBrush}"
+                         Margin="0,0,7,0" />
+              <TextBlock Text="{Binding DisplayName}" />
+            </StackPanel>
+          </HierarchicalDataTemplate>
+        </TreeView.ItemTemplate>
+        <TreeView.ItemContainerStyle>
+          <Style TargetType="{x:Type TreeViewItem}">
+            <Setter Property="IsExpanded" Value="{Binding IsExpanded, Mode=TwoWay}" />
+            <Setter Property="IsSelected" Value="{Binding IsSelected, Mode=TwoWay}" />
+            <Setter Property="Foreground" Value="{DynamicResource VsTextBrush}" />
+            <Setter Property="Padding" Value="3" />
+          </Style>
+        </TreeView.ItemContainerStyle>
+      </TreeView>
+    </Border>
+
+    <TextBlock x:Name="ValidationText"
+               Grid.Row="2"
+               MinHeight="20"
+               Margin="0,9,0,4"
+               Foreground="{DynamicResource VsMutedTextBrush}"
+               TextWrapping="Wrap" />
+
+    <StackPanel Grid.Row="3" Orientation="Horizontal" HorizontalAlignment="Right">
+      <Button x:Name="MoveButton" MinWidth="88" Margin="0,0,8,0" IsDefault="True" Click="ConfirmMove" />
+      <Button x:Name="CancelButton" MinWidth="88" IsCancel="True" />
+    </StackPanel>
+  </Grid>
+</Window>

@@ -1,0 +1,14 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <RootNamespace>Xoderony.Logging</RootNamespace>
+    <AssemblyName>Xoderony.Logging</AssemblyName>
+    <PackageId>Xoderony.Logging</PackageId>
+    <AllowUnsafeBlocks>false</AllowUnsafeBlocks>
+    <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
+    <Description>Low-allocation logger extensions with call-site tags and early message filtering.</Description>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="..\..\unity\io.github.xoderony.logging\Runtime\Core\**\*.cs" Link="%(RecursiveDir)%(Filename)%(Extension)" />
+  </ItemGroup>
+</Project>

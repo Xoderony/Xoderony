@@ -1,0 +1,16 @@
+{
+    "name": "Xoderony.Logging.Unity",
+    "rootNamespace": "Xoderony.Logging",
+    "references": [
+        "Xoderony.Logging"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

@@ -1,0 +1,18 @@
+{
+  "name": "io.github.xoderony.localization",
+  "version": "0.1.0",
+  "displayName": "Xoderony Localization",
+  "description": "Dependency-free localization core with strict JSON data access and build-time tooling.",
+  "unity": "7000.0",
+  "author": {
+    "name": "Xoderony",
+    "url": "https://github.com/Xoderony"
+  },
+  "keywords": [
+    "xoderony",
+    "localization",
+    "locale",
+    "i18n",
+    "tooling"
+  ]
+}

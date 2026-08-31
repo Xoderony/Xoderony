@@ -1,0 +1,15 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <RootNamespace>Xoderony.Localization</RootNamespace>
+    <AssemblyName>Xoderony.Localization.Tooling</AssemblyName>
+    <PackageId>Xoderony.Localization.Tooling</PackageId>
+    <IsPackable>false</IsPackable>
+    <AllowUnsafeBlocks>false</AllowUnsafeBlocks>
+    <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
+    <Description>Editor and build-time tooling for Xoderony.Localization.</Description>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="..\..\unity\io.github.xoderony.localization\Runtime\Tooling\**\*.cs" Link="%(RecursiveDir)%(Filename)%(Extension)" />
+  </ItemGroup>
+</Project>
