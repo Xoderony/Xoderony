@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Frozen;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Globalization;
 
 namespace Xoderony.Localization;
@@ -13,7 +14,7 @@ public sealed class StringLocalizerBuilder {
     public CultureInfo Culture => _culture;
 
     public StringLocalizerBuilder(CultureInfo culture) {
-        ArgumentNullException.ThrowIfNull(culture);
+        Debug.Assert(culture is not null);
         if (culture.Equals(CultureInfo.InvariantCulture)) {
             throw new ArgumentException("The target culture cannot be invariant.", nameof(culture));
         }
@@ -22,7 +23,7 @@ public sealed class StringLocalizerBuilder {
     }
 
     public void AddLayer(IEnumerable<KeyValuePair<string, string>> localizedStrings) {
-        ArgumentNullException.ThrowIfNull(localizedStrings);
+        Debug.Assert(localizedStrings is not null);
 
         var layer = new Dictionary<string, string>(StringComparer.Ordinal);
         foreach (var entry in localizedStrings) {

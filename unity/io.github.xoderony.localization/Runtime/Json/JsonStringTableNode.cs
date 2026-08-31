@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.IO;
 
@@ -78,7 +79,7 @@ public sealed class JsonStringTableGroup : JsonStringTableNode {
     public IReadOnlyDictionary<string, JsonStringTableNode> Children => _childByLocalKey;
 
     public bool TryGet(string relativeKey, [NotNullWhen(true)] out JsonStringTableNode? node) {
-        ArgumentException.ThrowIfNullOrEmpty(relativeKey);
+        Debug.Assert(!string.IsNullOrWhiteSpace(relativeKey));
 
         var current = this;
         var localKeys = relativeKey.Split('.');
@@ -125,14 +126,14 @@ public sealed class JsonStringTableGroup : JsonStringTableNode {
         return group;
     }
 
-    public IEnumerable<string> EnumerateEntryKeys() {
+    public IEnumerable<string> GetDescendantKeys() {
         foreach (var child in _childByLocalKey.Values) {
             switch (child) {
                 case JsonStringTableEntry entry:
                     yield return entry.FullKey;
                     break;
                 case JsonStringTableGroup group:
-                    foreach (var key in group.EnumerateEntryKeys()) {
+                    foreach (var key in group.GetDescendantKeys()) {
                         yield return key;
                     }
 

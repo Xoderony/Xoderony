@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Text;
 
 namespace Xoderony.Localization.Tooling;
@@ -18,9 +19,9 @@ public static class StringTableKeyGenerator {
     ];
 
     public static string Generate(IEnumerable<string> keys, string namespaceName, string typeName) {
-        ArgumentNullException.ThrowIfNull(keys);
-        ArgumentNullException.ThrowIfNull(namespaceName);
-        ArgumentNullException.ThrowIfNull(typeName);
+        Debug.Assert(keys is not null);
+        Debug.Assert(namespaceName is not null);
+        Debug.Assert(typeName is not null);
 
         ValidateNamespace(namespaceName);
         ValidateIdentifier(typeName, nameof(typeName));

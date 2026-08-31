@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Frozen;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Globalization;
 
 namespace Xoderony.Localization;
@@ -13,11 +14,11 @@ public sealed class StringLocalizer : IStringLocalizer {
     public CultureInfo Culture => _culture;
 
     public StringLocalizer(CultureInfo culture, IEnumerable<KeyValuePair<string, string>> localizedStrings) {
-        ArgumentNullException.ThrowIfNull(culture);
+        Debug.Assert(culture is not null);
         if (culture.Equals(CultureInfo.InvariantCulture)) {
             throw new ArgumentException("The target culture cannot be invariant.", nameof(culture));
         }
-        ArgumentNullException.ThrowIfNull(localizedStrings);
+        Debug.Assert(localizedStrings is not null);
 
         var localizedStringByKey = new Dictionary<string, string>(StringComparer.Ordinal);
         foreach (var entry in localizedStrings) {
@@ -38,6 +39,7 @@ public sealed class StringLocalizer : IStringLocalizer {
         _localizedStringByKey = localizedStringByKey.ToFrozenDictionary(StringComparer.Ordinal);
     }
 
+    /// <summary>直接持有传入的 culture 与字符串表，不解析 culture，也不复制字典。</summary>
     internal StringLocalizer(CultureInfo culture, FrozenDictionary<string, string> localizedStringByKey) {
         _culture = culture;
         _localizedStringByKey = localizedStringByKey;
@@ -61,7 +63,7 @@ public sealed class StringLocalizer : IStringLocalizer {
             if (string.IsNullOrEmpty(key)) {
                 throw new ArgumentException("The localization key cannot be null or empty.", nameof(key));
             }
-            ArgumentNullException.ThrowIfNull(arguments);
+            Debug.Assert(arguments is not null);
             if (_localizedStringByKey.TryGetValue(key, out var format)) {
                 return string.Format(_culture, format, arguments);
             }

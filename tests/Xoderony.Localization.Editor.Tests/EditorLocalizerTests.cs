@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
 using Xoderony.Localization.Editor;
+using Xoderony.Localization.Json;
 using Xunit;
 
 namespace Xoderony.Localization.Editor.Tests;
@@ -13,17 +14,24 @@ public sealed class EditorLocalizerTests : IDisposable {
 
     public EditorLocalizerTests() {
         Directory.CreateDirectory(_directoryPath);
+        File.WriteAllText(Path.Combine(_directoryPath, JsonStringTableCollection.KeysFileName), """
+            {
+              "greeting": null,
+              "fallback": null,
+              "number": null
+            }
+            """);
         File.WriteAllText(Path.Combine(_directoryPath, "zh-CN.json"), """
             {
-              "greeting": "你好",
               "fallback": "后备",
+              "greeting": "你好",
               "number": "{0:N2}"
             }
             """);
         File.WriteAllText(Path.Combine(_directoryPath, "en-US.json"), """
             {
-              "greeting": "Hello",
               "fallback": "",
+              "greeting": "Hello",
               "number": "{0:N2}"
             }
             """);

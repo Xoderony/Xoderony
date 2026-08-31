@@ -1,0 +1,107 @@
+{
+  "context": {
+    "add_group": null,
+    "add_locale": null,
+    "add_entry": null,
+    "copy": null,
+    "move": null,
+    "paste": null,
+    "remove": null,
+    "rename": null
+  },
+  "dialog": {
+    "add_group_message": null,
+    "add_group_title": null,
+    "add_locale_message": null,
+    "add_locale_title": null,
+    "add_entry_message": null,
+    "add_entry_title": null,
+    "cancel": null,
+    "confirm": null,
+    "edit_translation_key": null,
+    "edit_translation_locale": null,
+    "edit_translation_shortcut": null,
+    "edit_translation_title": null,
+    "error_title": null,
+    "generate_keys_file_filter": null,
+    "generate_keys_namespace_message": null,
+    "generate_keys_namespace_title": null,
+    "generate_keys_output_title": null,
+    "generate_keys_type_message": null,
+    "generate_keys_type_title": null,
+    "invalid_clipboard": null,
+    "move_confirm": null,
+    "move_conflict": null,
+    "move_message": null,
+    "move_root": null,
+    "move_same_parent": null,
+    "move_title": null,
+    "open_directory_title": null,
+    "remove_message": null,
+    "remove_title": null,
+    "rename_message": null,
+    "rename_title": null,
+    "unsaved_message": null,
+    "unsaved_title": null
+  },
+  "empty_state": {
+    "description": null,
+    "select_directory": null,
+    "title": null
+  },
+  "grid": {
+    "name": null
+  },
+  "language": {
+    "label": null
+  },
+  "path": {
+    "label": null,
+    "unopened": null
+  },
+  "search": {
+    "clear_tooltip": null,
+    "placeholder": null
+  },
+  "status": {
+    "copied": null,
+    "generated_keys": null,
+    "saved": null,
+    "summary": null,
+    "unopened": null,
+    "unsaved": null
+  },
+  "theme": {
+    "dark": null,
+    "label": null,
+    "light": null
+  },
+  "toolbar": {
+    "add_group": null,
+    "add_group_tooltip": null,
+    "add_locale": null,
+    "add_locale_tooltip": null,
+    "add_entry": null,
+    "add_entry_tooltip": null,
+    "copy": null,
+    "copy_tooltip": null,
+    "generate_keys": null,
+    "generate_keys_tooltip": null,
+    "move": null,
+    "move_tooltip": null,
+    "open": null,
+    "open_tooltip": null,
+    "paste": null,
+    "paste_tooltip": null,
+    "remove": null,
+    "remove_tooltip": null,
+    "rename": null,
+    "rename_tooltip": null,
+    "save": null,
+    "save_tooltip": null
+  },
+  "window": {
+    "title": null,
+    "title_with_directory": null
+  }
+}

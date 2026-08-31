@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 
 namespace Xoderony.Collections;
 
@@ -141,7 +142,7 @@ public ref struct SpanList<T> {
     }
 
     public int RemoveAll(Predicate<T> match) {
-        ArgumentNullException.ThrowIfNull(match);
+        Debug.Assert(match is not null);
         var span = Span;
         var firstIndex = 0;
         for (; firstIndex < span.Length; firstIndex++) {

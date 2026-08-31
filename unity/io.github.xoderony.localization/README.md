@@ -31,20 +31,21 @@
 
 ## JSON 数据层
 
-一个语言表集合目录中的文件以标准 culture 名称命名，例如：
+一个语言表集合目录包含共享键文件与各 Locale 的译文文件，例如：
 
 ```text
 UI/
+  keys.json
   en-US.json
   ja-JP.json
   zh-CN.json
 ```
 
-JSON 数据层只接受标准 JSON object 根。嵌套对象作为键组，字符串叶节点作为词条；数组、number、boolean 和 null 会被拒绝。规范化后的公共结构由 `RootGroup` 暴露，节点类型使用 `Group` 和 `Entry`；新增节点分别调用 `AddGroup(...)` 与 `AddEntry(...)`。加载集合时会合并各 Locale 的词条键，并在缺少对应词条的 Locale 中自动写入空字符串。新增词条和 Locale 同样以空字符串补齐所有翻译位置；重命名、移动与删除节点同时作用于集合中的所有 Locale。
+`keys.json` 是键权威：嵌套 object 表示键组，JSON `null` 表示词条。各 `{culture}.json` 只保存扁平的 `full.key` → 字符串译文，不再重复嵌套结构。公共结构由 `RootGroup` 暴露，节点类型使用 `Group` 和 `Entry`；新增节点分别调用 `AddGroup(...)` 与 `AddEntry(...)`。结构变更只改 `keys.json`，并同步各 Locale 值表中的键；缺省译文在读取时视为空字符串。
 
 空字符串表示尚未完成翻译。普通保存允许空字符串。`tools/Xoderony.Localization.Editor` 是用于打开、编辑和保存语言表目录的 WPF 程序；它显示树的可见节点列表、动态 Locale 列和每种语言的空值统计，并可调用 `StringTableKeyGenerator` 为当前语言表生成强类型 C# 键，不需要打开 Unity。
 
-保存输出为 UTF-8 无 BOM、LF、缩进并以换行结尾的标准 JSON。属性按 ordinal 递归排序；JSON 不保留注释、空白或位置等源格式信息。
+保存输出为 UTF-8 无 BOM、LF、缩进并以换行结尾的标准 JSON。Locale 值文件的属性按 ordinal 排序；JSON 不保留注释、空白或位置等源格式信息。
 
 ## 强类型本地化键生成
 
