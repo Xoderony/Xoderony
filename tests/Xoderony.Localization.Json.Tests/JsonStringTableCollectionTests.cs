@@ -26,7 +26,7 @@ public sealed class JsonStringTableCollectionTests {
         var collection = CreateCollection((English, "{ \"menu\": { \"start\": \"Start\" } }"), (SimplifiedChinese, "{ \"menu\": { \"start\": \"开始\" } }"));
 
         collection.AddGroup("menu", "settings");
-        collection.AddTextEntry("menu.settings", "title");
+        collection.AddEntry("menu.settings", "title");
         collection.SetValue(English, "menu.settings.title", "Settings");
         collection.Copy("menu.settings", "", "preferences");
         collection.Rename("preferences", "options");
@@ -60,6 +60,32 @@ public sealed class JsonStringTableCollectionTests {
         try {
             File.WriteAllText(filePath, json);
             Assert.Throws<InvalidDataException>(() => JsonStringTable.Load(English, filePath));
+        } finally {
+            Directory.Delete(directoryPath, recursive: true);
+        }
+    }
+
+    [Fact]
+    public void LoadDirectoryAllowsEmptyDirectoryThenAddLocale() {
+        var directoryPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(directoryPath);
+        var filePath = Path.Combine(directoryPath, "zh-CN.json");
+        try {
+            var collection = JsonStringTableCollection.LoadDirectory(directoryPath);
+
+            Assert.Empty(collection.Cultures);
+            Assert.Empty(collection.GetKeys());
+            Assert.False(collection.IsDirty);
+
+            collection.AddLocale(SimplifiedChinese, filePath);
+            collection.AddEntry(string.Empty, "title");
+            collection.SetValue(SimplifiedChinese, "title", "标题");
+            collection.Save();
+
+            Assert.Equal([SimplifiedChinese], collection.Cultures);
+            Assert.Equal(["title"], collection.GetKeys());
+            Assert.True(File.Exists(filePath));
+            Assert.Contains("标题", File.ReadAllText(filePath), StringComparison.Ordinal);
         } finally {
             Directory.Delete(directoryPath, recursive: true);
         }

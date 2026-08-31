@@ -1,55 +1,177 @@
 using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.IO;
 
 namespace Xoderony.Localization.Json;
 
-public enum JsonStringTableNodeKind {
-    Group,
-    TextEntry
-}
+public abstract class JsonStringTableNode {
 
-public sealed class JsonStringTableNode {
-
-    private readonly SortedDictionary<string, JsonStringTableNode> _childBySegment = new(StringComparer.Ordinal);
     private readonly string _fullKey;
-    private readonly JsonStringTableNodeKind _kind;
-    private readonly string _segment;
+    private readonly string _localKey;
 
-    internal JsonStringTableNode(string segment, string fullKey, JsonStringTableNodeKind kind) {
-        _segment = segment;
+    private protected JsonStringTableNode(string localKey, string fullKey) {
+        _localKey = localKey;
         _fullKey = fullKey;
-        _kind = kind;
     }
 
-    public string Segment => _segment;
+    public string LocalKey => _localKey;
 
     public string FullKey => _fullKey;
 
-    public JsonStringTableNodeKind Kind => _kind;
-
-    public IReadOnlyDictionary<string, JsonStringTableNode> Children => _childBySegment;
-
-    public bool TryGetChild(string segment, [NotNullWhen(true)] out JsonStringTableNode? child) {
-        return _childBySegment.TryGetValue(segment, out child);
+    public static string CombineKey(string parentKey, string localKey) {
+        return parentKey.Length == 0 ? localKey : $"{parentKey}.{localKey}";
     }
 
-    internal JsonStringTableNode GetOrAddChild(string segment, JsonStringTableNodeKind kind) {
-        Debug.Assert(_kind == JsonStringTableNodeKind.Group);
-        if (_childBySegment.TryGetValue(segment, out var child)) {
-            if (child._kind != kind) {
-                var fullKey = _fullKey.Length == 0 ? segment : $"{_fullKey}.{segment}";
-                throw new InvalidDataException($"The localization path '{fullKey}' is used as both a group and a text entry.");
-            }
+    public static string GetParentKey(string key) {
+        var index = key.LastIndexOf('.');
+        return index < 0 ? string.Empty : key[..index];
+    }
 
-            return child;
+    public static bool IsValidLocalKey(string? localKey) {
+        if (string.IsNullOrEmpty(localKey) || localKey[0] is < 'a' or > 'z') {
+            return false;
         }
 
-        var childFullKey = _fullKey.Length == 0 ? segment : $"{_fullKey}.{segment}";
-        child = new JsonStringTableNode(segment, childFullKey, kind);
-        _childBySegment.Add(segment, child);
-        return child;
+        var previousUnderscore = false;
+        for (var index = 1; index < localKey.Length; index++) {
+            var character = localKey[index];
+            if (character == '_') {
+                if (previousUnderscore) {
+                    return false;
+                }
+
+                previousUnderscore = true;
+                continue;
+            }
+
+            if (character is not (>= 'a' and <= 'z') and not (>= '0' and <= '9')) {
+                return false;
+            }
+
+            previousUnderscore = false;
+        }
+
+        return !previousUnderscore;
+    }
+
+    internal static void ValidateLocalKey(string localKey, string parameterName) {
+        if (!IsValidLocalKey(localKey)) {
+            throw new ArgumentException($"'{localKey}' is not a valid lower_snake_case local key.", parameterName);
+        }
+    }
+
+    internal static void ValidateSourceLocalKey(string localKey, string filePath) {
+        if (!IsValidLocalKey(localKey)) {
+            throw new InvalidDataException($"The local key '{localKey}' in '{filePath}' is not valid lower_snake_case.");
+        }
+    }
+}
+
+public sealed class JsonStringTableGroup : JsonStringTableNode {
+
+    private readonly SortedDictionary<string, JsonStringTableNode> _childByLocalKey = new(StringComparer.Ordinal);
+
+    internal JsonStringTableGroup(string localKey, string fullKey) : base(localKey, fullKey) {
+    }
+
+    public IReadOnlyDictionary<string, JsonStringTableNode> Children => _childByLocalKey;
+
+    public bool TryGet(string relativeKey, [NotNullWhen(true)] out JsonStringTableNode? node) {
+        ArgumentException.ThrowIfNullOrEmpty(relativeKey);
+
+        var current = this;
+        var localKeys = relativeKey.Split('.');
+        for (var index = 0; index < localKeys.Length; index++) {
+            if (!current._childByLocalKey.TryGetValue(localKeys[index], out var child)) {
+                node = null;
+                return false;
+            }
+
+            if (index == localKeys.Length - 1) {
+                node = child;
+                return true;
+            }
+
+            if (child is not JsonStringTableGroup group) {
+                node = null;
+                return false;
+            }
+
+            current = group;
+        }
+
+        node = null;
+        return false;
+    }
+
+    public JsonStringTableNode Get(string relativeKey) {
+        if (!TryGet(relativeKey, out var node)) {
+            throw new KeyNotFoundException($"The localization path '{relativeKey}' does not exist.");
+        }
+
+        return node;
+    }
+
+    public JsonStringTableGroup GetGroup(string relativeKey) {
+        if (relativeKey.Length == 0) {
+            return this;
+        }
+
+        if (Get(relativeKey) is not JsonStringTableGroup group) {
+            throw new ArgumentException($"The localization path '{relativeKey}' is not a group.", nameof(relativeKey));
+        }
+
+        return group;
+    }
+
+    public IEnumerable<string> EnumerateEntryKeys() {
+        foreach (var child in _childByLocalKey.Values) {
+            switch (child) {
+                case JsonStringTableEntry entry:
+                    yield return entry.FullKey;
+                    break;
+                case JsonStringTableGroup group:
+                    foreach (var key in group.EnumerateEntryKeys()) {
+                        yield return key;
+                    }
+
+                    break;
+            }
+        }
+    }
+
+    internal JsonStringTableGroup GetOrAddGroup(string localKey) {
+        if (_childByLocalKey.TryGetValue(localKey, out var child)) {
+            if (child is JsonStringTableGroup group) {
+                return group;
+            }
+
+            throw new InvalidDataException($"The localization path '{CombineKey(FullKey, localKey)}' is used as both a group and an entry.");
+        }
+
+        var created = new JsonStringTableGroup(localKey, CombineKey(FullKey, localKey));
+        _childByLocalKey.Add(localKey, created);
+        return created;
+    }
+
+    internal JsonStringTableEntry GetOrAddEntry(string localKey) {
+        if (_childByLocalKey.TryGetValue(localKey, out var child)) {
+            if (child is JsonStringTableEntry entry) {
+                return entry;
+            }
+
+            throw new InvalidDataException($"The localization path '{CombineKey(FullKey, localKey)}' is used as both a group and an entry.");
+        }
+
+        var created = new JsonStringTableEntry(localKey, CombineKey(FullKey, localKey));
+        _childByLocalKey.Add(localKey, created);
+        return created;
+    }
+}
+
+public sealed class JsonStringTableEntry : JsonStringTableNode {
+
+    internal JsonStringTableEntry(string localKey, string fullKey) : base(localKey, fullKey) {
     }
 }

@@ -82,10 +82,10 @@
               <TextBlock Text="{Binding [toolbar.add_group]}" />
             </StackPanel>
           </Button>
-          <Button x:Name="AddTextEntryButton" Style="{StaticResource ToolbarButtonStyle}" Click="AddTextEntry" ToolTip="{Binding [toolbar.add_text_entry_tooltip]}">
+          <Button x:Name="AddEntryButton" Style="{StaticResource ToolbarButtonStyle}" Click="AddEntry" ToolTip="{Binding [toolbar.add_entry_tooltip]}">
             <StackPanel Orientation="Horizontal">
               <TextBlock Text="&#xE710;" Style="{StaticResource ToolbarIconTextStyle}" />
-              <TextBlock Text="{Binding [toolbar.add_text_entry]}" />
+              <TextBlock Text="{Binding [toolbar.add_entry]}" />
             </StackPanel>
           </Button>
           <Button x:Name="AddLocaleButton" Style="{StaticResource ToolbarButtonStyle}" Click="AddLocale" ToolTip="{Binding [toolbar.add_locale_tooltip]}">
@@ -239,7 +239,7 @@
         <DataGrid.ContextMenu>
           <ContextMenu>
             <MenuItem Header="{Binding [context.add_group]}" Click="AddGroup" />
-            <MenuItem Header="{Binding [context.add_text_entry]}" Click="AddTextEntry" />
+            <MenuItem Header="{Binding [context.add_entry]}" Click="AddEntry" />
             <MenuItem Header="{Binding [context.add_locale]}" Click="AddLocale" />
             <Separator />
             <MenuItem x:Name="RenameMenuItem" Header="{Binding [context.rename]}" InputGestureText="F2" Click="Rename" />

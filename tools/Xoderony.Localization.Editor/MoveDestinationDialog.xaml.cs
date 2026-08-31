@@ -12,11 +12,11 @@ public partial class MoveDestinationDialog : Window {
     private readonly string _conflictMessage;
     private readonly string _currentParentKey;
     private readonly string _sameParentMessage;
-    private readonly string _sourceSegment;
+    private readonly string _sourceLocalKey;
 
     public string SelectedGroupKey { get; private set; } = string.Empty;
 
-    public MoveDestinationDialog(JsonStringTableNode rootGroup, JsonStringTableNode source, string rootDisplayName, string title, string message, string moveText, string cancelText, string sameParentMessage, string conflictMessage) {
+    public MoveDestinationDialog(JsonStringTableGroup rootGroup, JsonStringTableNode source, string rootDisplayName, string title, string message, string moveText, string cancelText, string sameParentMessage, string conflictMessage) {
         ArgumentNullException.ThrowIfNull(rootGroup);
         ArgumentNullException.ThrowIfNull(source);
 
@@ -25,8 +25,8 @@ public partial class MoveDestinationDialog : Window {
         MessageText.Text = message;
         MoveButton.Content = moveText;
         CancelButton.Content = cancelText;
-        _sourceSegment = source.Segment;
-        _currentParentKey = GetParentKey(source.FullKey);
+        _sourceLocalKey = source.LocalKey;
+        _currentParentKey = JsonStringTableNode.GetParentKey(source.FullKey);
         _sameParentMessage = sameParentMessage;
         _conflictMessage = conflictMessage;
 
@@ -59,7 +59,7 @@ public partial class MoveDestinationDialog : Window {
             return;
         }
 
-        if (item.Node.TryGetChild(_sourceSegment, out _)) {
+        if (item.Node.Children.ContainsKey(_sourceLocalKey)) {
             MoveButton.IsEnabled = false;
             ValidationText.Text = _conflictMessage;
             return;
@@ -69,14 +69,14 @@ public partial class MoveDestinationDialog : Window {
         ValidationText.Text = string.Empty;
     }
 
-    private static MoveDestinationItem CreateItem(JsonStringTableNode group, string excludedGroupKey, string selectedGroupKey, string rootDisplayName) {
+    private static MoveDestinationItem CreateItem(JsonStringTableGroup group, string excludedGroupKey, string selectedGroupKey, string rootDisplayName) {
         var children = new List<MoveDestinationItem>();
         foreach (var child in group.Children.Values) {
-            if (child.Kind != JsonStringTableNodeKind.Group || string.Equals(child.FullKey, excludedGroupKey, StringComparison.Ordinal)) {
+            if (child is not JsonStringTableGroup childGroup || string.Equals(child.FullKey, excludedGroupKey, StringComparison.Ordinal)) {
                 continue;
             }
 
-            children.Add(CreateItem(child, excludedGroupKey, selectedGroupKey, rootDisplayName));
+            children.Add(CreateItem(childGroup, excludedGroupKey, selectedGroupKey, rootDisplayName));
         }
 
         var isRoot = group.FullKey.Length == 0;
@@ -85,21 +85,16 @@ public partial class MoveDestinationDialog : Window {
                 || selectedGroupKey.StartsWith($"{group.FullKey}.", StringComparison.Ordinal));
         return new MoveDestinationItem(
             group,
-            isRoot ? rootDisplayName : group.Segment,
+            isRoot ? rootDisplayName : group.LocalKey,
             children,
             isRoot || isOnSelectedPath,
             string.Equals(group.FullKey, selectedGroupKey, StringComparison.Ordinal)
         );
     }
 
-    private static string GetParentKey(string key) {
-        var separatorIndex = key.LastIndexOf('.');
-        return separatorIndex < 0 ? string.Empty : key[..separatorIndex];
-    }
+    private sealed class MoveDestinationItem(JsonStringTableGroup node, string displayName, IReadOnlyList<MoveDestinationItem> children, bool isExpanded, bool isSelected) {
 
-    private sealed class MoveDestinationItem(JsonStringTableNode node, string displayName, IReadOnlyList<MoveDestinationItem> children, bool isExpanded, bool isSelected) {
-
-        public JsonStringTableNode Node { get; } = node;
+        public JsonStringTableGroup Node { get; } = node;
 
         public string DisplayName { get; } = displayName;
 

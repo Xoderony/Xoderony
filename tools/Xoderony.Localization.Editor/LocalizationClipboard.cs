@@ -30,7 +30,7 @@ internal static class LocalizationClipboard {
         var payload = new ClipboardPayload {
             Format = FormatName,
             Version = FormatVersion,
-            Segment = node.Segment,
+            LocalKey = node.LocalKey,
             Node = CreateNode(tables, node)
         };
         var json = JsonSerializer.Serialize(payload, new JsonSerializerOptions { WriteIndented = true });
@@ -65,7 +65,7 @@ internal static class LocalizationClipboard {
         if (payload is null
             || !string.Equals(payload.Format, FormatName, StringComparison.Ordinal)
             || payload.Version != FormatVersion
-            || !IsValidSegment(payload.Segment)
+            || !JsonStringTableNode.IsValidLocalKey(payload.LocalKey)
             || !IsValidNode(payload.Node)) {
             payload = null;
             return false;
@@ -74,18 +74,18 @@ internal static class LocalizationClipboard {
         return true;
     }
 
-    public static void Paste(JsonStringTableCollection tables, string parentGroupKey, string segment, ClipboardPayload payload) {
+    public static void Paste(JsonStringTableCollection tables, string parentGroupKey, string localKey, ClipboardPayload payload) {
         ArgumentNullException.ThrowIfNull(tables);
         ArgumentNullException.ThrowIfNull(payload);
 
-        AddNode(tables, parentGroupKey, segment, payload.Node);
+        AddNode(tables, parentGroupKey, localKey, payload.Node);
     }
 
     private static ClipboardNode CreateNode(JsonStringTableCollection tables, JsonStringTableNode node) {
-        if (node.Kind == JsonStringTableNodeKind.Group) {
+        if (node is JsonStringTableGroup group) {
             var children = new Dictionary<string, ClipboardNode>(StringComparer.Ordinal);
-            foreach (var child in node.Children.Values) {
-                children.Add(child.Segment, CreateNode(tables, child));
+            foreach (var child in group.Children.Values) {
+                children.Add(child.LocalKey, CreateNode(tables, child));
             }
 
             return new ClipboardNode { Children = children };
@@ -99,10 +99,10 @@ internal static class LocalizationClipboard {
         return new ClipboardNode { Values = values };
     }
 
-    private static void AddNode(JsonStringTableCollection tables, string parentGroupKey, string segment, ClipboardNode node) {
-        var key = CombineKey(parentGroupKey, segment);
+    private static void AddNode(JsonStringTableCollection tables, string parentGroupKey, string localKey, ClipboardNode node) {
+        var key = JsonStringTableNode.CombineKey(parentGroupKey, localKey);
         if (node.Children is not null) {
-            tables.AddGroup(parentGroupKey, segment);
+            tables.AddGroup(parentGroupKey, localKey);
             foreach (var child in node.Children) {
                 AddNode(tables, key, child.Key, child.Value);
             }
@@ -110,7 +110,7 @@ internal static class LocalizationClipboard {
             return;
         }
 
-        tables.AddTextEntry(parentGroupKey, segment);
+        tables.AddEntry(parentGroupKey, localKey);
         foreach (var culture in tables.Cultures) {
             if (TryGetValue(node.Values!, culture, out var value)) {
                 tables.SetValue(culture, key, value);
@@ -146,43 +146,12 @@ internal static class LocalizationClipboard {
         }
 
         foreach (var child in node.Children!) {
-            if (!IsValidSegment(child.Key) || !IsValidNode(child.Value)) {
+            if (!JsonStringTableNode.IsValidLocalKey(child.Key) || !IsValidNode(child.Value)) {
                 return false;
             }
         }
 
         return true;
-    }
-
-    private static bool IsValidSegment(string? segment) {
-        if (string.IsNullOrEmpty(segment) || segment[0] is < 'a' or > 'z') {
-            return false;
-        }
-
-        var previousUnderscore = false;
-        for (var index = 1; index < segment.Length; index++) {
-            var character = segment[index];
-            if (character == '_') {
-                if (previousUnderscore) {
-                    return false;
-                }
-
-                previousUnderscore = true;
-                continue;
-            }
-
-            if (character is not (>= 'a' and <= 'z') and not (>= '0' and <= '9')) {
-                return false;
-            }
-
-            previousUnderscore = false;
-        }
-
-        return !previousUnderscore;
-    }
-
-    private static string CombineKey(string parentKey, string segment) {
-        return parentKey.Length == 0 ? segment : $"{parentKey}.{segment}";
     }
 
     internal sealed class ClipboardPayload {
@@ -193,7 +162,7 @@ internal static class LocalizationClipboard {
 
         public int Version { get; init; }
 
-        public string Segment { get; init; } = string.Empty;
+        public string LocalKey { get; init; } = string.Empty;
 
         public ClipboardNode Node { get; init; } = new();
     }

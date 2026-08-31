@@ -13,11 +13,11 @@ public sealed class JsonStringTableCollection {
     private readonly HashSet<JsonStringTable> _dirtyTables = [];
     private readonly List<JsonStringTable> _tables = [];
     private ReadOnlyCollection<CultureInfo> _cultures = new([]);
-    private JsonStringTableNode _rootGroup = new(string.Empty, string.Empty, JsonStringTableNodeKind.Group);
+    private JsonStringTableGroup _rootGroup = new(string.Empty, string.Empty);
 
     public IReadOnlyList<CultureInfo> Cultures => _cultures;
 
-    public JsonStringTableNode RootGroup => _rootGroup;
+    public JsonStringTableGroup RootGroup => _rootGroup;
 
     public bool IsDirty => _dirtyTables.Count != 0;
 
@@ -31,10 +31,6 @@ public sealed class JsonStringTableCollection {
             }
 
             _tables.Add(table);
-        }
-
-        if (_tables.Count == 0) {
-            throw new ArgumentException("At least one JSON string table is required.", nameof(tables));
         }
 
         _tables.Sort(CompareTables);
@@ -90,30 +86,30 @@ public sealed class JsonStringTableCollection {
         RebuildAndComplete();
     }
 
-    public void AddGroup(string parentGroupKey, string segment) {
-        AddNode(parentGroupKey, segment, JsonStringTableNodeKind.Group);
+    public void AddGroup(string parentGroupKey, string localKey) {
+        AddNode(parentGroupKey, localKey, isGroup: true);
     }
 
-    public void AddTextEntry(string parentGroupKey, string segment) {
-        AddNode(parentGroupKey, segment, JsonStringTableNodeKind.TextEntry);
+    public void AddEntry(string parentGroupKey, string localKey) {
+        AddNode(parentGroupKey, localKey, isGroup: false);
     }
 
-    public void Rename(string key, string newSegment) {
-        var node = GetNode(key);
-        ValidateSegment(newSegment, nameof(newSegment));
-        if (string.Equals(node.Segment, newSegment, StringComparison.Ordinal)) {
+    public void Rename(string key, string newLocalKey) {
+        var node = _rootGroup.Get(key);
+        JsonStringTableNode.ValidateLocalKey(newLocalKey, nameof(newLocalKey));
+        if (string.Equals(node.LocalKey, newLocalKey, StringComparison.Ordinal)) {
             return;
         }
 
-        var parentKey = GetParentKey(key);
-        if (GetGroupNode(parentKey).TryGetChild(newSegment, out _)) {
-            throw new ArgumentException($"The localization path '{CombineKey(parentKey, newSegment)}' already exists.", nameof(newSegment));
+        var parentKey = JsonStringTableNode.GetParentKey(key);
+        if (_rootGroup.GetGroup(parentKey).Children.ContainsKey(newLocalKey)) {
+            throw new ArgumentException($"The localization path '{JsonStringTableNode.CombineKey(parentKey, newLocalKey)}' already exists.", nameof(newLocalKey));
         }
 
         foreach (var table in _tables) {
             var parent = GetObject(table.Root, parentKey);
-            var value = RemoveValue(parent, node.Segment, table, key);
-            parent.Add(newSegment, value);
+            var value = RemoveValue(parent, node.LocalKey, table, key);
+            parent.Add(newLocalKey, value);
             _dirtyTables.Add(table);
         }
 
@@ -121,42 +117,42 @@ public sealed class JsonStringTableCollection {
     }
 
     public void Move(string key, string newParentGroupKey) {
-        var node = GetNode(key);
-        var oldParentKey = GetParentKey(key);
+        var node = _rootGroup.Get(key);
+        var oldParentKey = JsonStringTableNode.GetParentKey(key);
         if (string.Equals(oldParentKey, newParentGroupKey, StringComparison.Ordinal)) {
             return;
         }
 
         ValidateNotDescendant(key, newParentGroupKey);
-        if (GetGroupNode(newParentGroupKey).TryGetChild(node.Segment, out _)) {
-            throw new ArgumentException($"The localization path '{CombineKey(newParentGroupKey, node.Segment)}' already exists.", nameof(newParentGroupKey));
+        if (_rootGroup.GetGroup(newParentGroupKey).Children.ContainsKey(node.LocalKey)) {
+            throw new ArgumentException($"The localization path '{JsonStringTableNode.CombineKey(newParentGroupKey, node.LocalKey)}' already exists.", nameof(newParentGroupKey));
         }
 
         foreach (var table in _tables) {
             var oldParent = GetObject(table.Root, oldParentKey);
             var newParent = GetObject(table.Root, newParentGroupKey);
-            var value = RemoveValue(oldParent, node.Segment, table, key);
-            newParent.Add(node.Segment, value);
+            var value = RemoveValue(oldParent, node.LocalKey, table, key);
+            newParent.Add(node.LocalKey, value);
             _dirtyTables.Add(table);
         }
 
         RebuildAndComplete();
     }
 
-    public void Copy(string key, string newParentGroupKey, string newSegment) {
-        var node = GetNode(key);
-        ValidateSegment(newSegment, nameof(newSegment));
+    public void Copy(string key, string newParentGroupKey, string newLocalKey) {
+        var node = _rootGroup.Get(key);
+        JsonStringTableNode.ValidateLocalKey(newLocalKey, nameof(newLocalKey));
         ValidateNotDescendant(key, newParentGroupKey);
-        if (GetGroupNode(newParentGroupKey).TryGetChild(newSegment, out _)) {
-            throw new ArgumentException($"The localization path '{CombineKey(newParentGroupKey, newSegment)}' already exists.", nameof(newSegment));
+        if (_rootGroup.GetGroup(newParentGroupKey).Children.ContainsKey(newLocalKey)) {
+            throw new ArgumentException($"The localization path '{JsonStringTableNode.CombineKey(newParentGroupKey, newLocalKey)}' already exists.", nameof(newLocalKey));
         }
 
-        var oldParentKey = GetParentKey(key);
+        var oldParentKey = JsonStringTableNode.GetParentKey(key);
         foreach (var table in _tables) {
             var oldParent = GetObject(table.Root, oldParentKey);
-            var value = oldParent[node.Segment] ?? throw new InvalidOperationException($"The normalized table '{table.Culture.Name}' does not contain '{key}'.");
+            var value = oldParent[node.LocalKey] ?? throw new InvalidOperationException($"The normalized table '{table.Culture.Name}' does not contain '{key}'.");
             var newParent = GetObject(table.Root, newParentGroupKey);
-            newParent.Add(newSegment, value.DeepClone());
+            newParent.Add(newLocalKey, value.DeepClone());
             _dirtyTables.Add(table);
         }
 
@@ -164,11 +160,11 @@ public sealed class JsonStringTableCollection {
     }
 
     public void Remove(string key) {
-        var node = GetNode(key);
-        var parentKey = GetParentKey(key);
+        var node = _rootGroup.Get(key);
+        var parentKey = JsonStringTableNode.GetParentKey(key);
         foreach (var table in _tables) {
             var parent = GetObject(table.Root, parentKey);
-            RemoveValue(parent, node.Segment, table, key);
+            RemoveValue(parent, node.LocalKey, table, key);
             _dirtyTables.Add(table);
         }
 
@@ -176,32 +172,30 @@ public sealed class JsonStringTableCollection {
     }
 
     public string GetValue(CultureInfo culture, string key) {
-        var node = GetNode(key);
-        if (node.Kind != JsonStringTableNodeKind.TextEntry) {
+        if (_rootGroup.Get(key) is not JsonStringTableEntry entry) {
             throw new ArgumentException($"The localization path '{key}' is a group.", nameof(key));
         }
 
         var table = GetTable(culture);
-        var parent = GetObject(table.Root, GetParentKey(key));
-        var value = parent[node.Segment] ?? throw new InvalidOperationException($"The normalized table does not contain '{key}'.");
+        var parent = GetObject(table.Root, JsonStringTableNode.GetParentKey(key));
+        var value = parent[entry.LocalKey] ?? throw new InvalidOperationException($"The normalized table does not contain '{key}'.");
         return value.GetValue<string>();
     }
 
     public void SetValue(CultureInfo culture, string key, string value) {
         ArgumentNullException.ThrowIfNull(value);
 
-        var node = GetNode(key);
-        if (node.Kind != JsonStringTableNodeKind.TextEntry) {
+        if (_rootGroup.Get(key) is not JsonStringTableEntry entry) {
             throw new ArgumentException($"The localization path '{key}' is a group.", nameof(key));
         }
 
         var table = GetTable(culture);
-        var parent = GetObject(table.Root, GetParentKey(key));
-        if (string.Equals(parent[node.Segment]?.GetValue<string>(), value, StringComparison.Ordinal)) {
+        var parent = GetObject(table.Root, JsonStringTableNode.GetParentKey(key));
+        if (string.Equals(parent[entry.LocalKey]?.GetValue<string>(), value, StringComparison.Ordinal)) {
             return;
         }
 
-        parent[node.Segment] = value;
+        parent[entry.LocalKey] = value;
         _dirtyTables.Add(table);
     }
 
@@ -210,7 +204,7 @@ public sealed class JsonStringTableCollection {
     }
 
     public IEnumerable<string> GetKeys() {
-        return EnumerateKeys(_rootGroup);
+        return _rootGroup.EnumerateEntryKeys();
     }
 
     private void UpdateCultures() {
@@ -235,18 +229,18 @@ public sealed class JsonStringTableCollection {
         return table;
     }
 
-    private void AddNode(string parentGroupKey, string segment, JsonStringTableNodeKind kind) {
-        ValidateSegment(segment, nameof(segment));
-        if (GetGroupNode(parentGroupKey).TryGetChild(segment, out _)) {
-            throw new ArgumentException($"The localization path '{CombineKey(parentGroupKey, segment)}' already exists.", nameof(segment));
+    private void AddNode(string parentGroupKey, string localKey, bool isGroup) {
+        JsonStringTableNode.ValidateLocalKey(localKey, nameof(localKey));
+        if (_rootGroup.GetGroup(parentGroupKey).Children.ContainsKey(localKey)) {
+            throw new ArgumentException($"The localization path '{JsonStringTableNode.CombineKey(parentGroupKey, localKey)}' already exists.", nameof(localKey));
         }
 
         foreach (var table in _tables) {
             var parent = GetObject(table.Root, parentGroupKey);
-            if (kind == JsonStringTableNodeKind.Group) {
-                parent.Add(segment, new JsonObject());
+            if (isGroup) {
+                parent.Add(localKey, new JsonObject());
             } else {
-                parent.Add(segment, JsonValue.Create(string.Empty));
+                parent.Add(localKey, JsonValue.Create(string.Empty));
             }
 
             _dirtyTables.Add(table);
@@ -255,9 +249,9 @@ public sealed class JsonStringTableCollection {
         RebuildAndComplete();
     }
 
-    private static JsonNode RemoveValue(JsonObject source, string segment, JsonStringTable table, string fullKey) {
-        var value = source[segment] ?? throw new InvalidOperationException($"The normalized table '{table.Culture.Name}' does not contain '{fullKey}'.");
-        source.Remove(segment);
+    private static JsonNode RemoveValue(JsonObject source, string localKey, JsonStringTable table, string fullKey) {
+        var value = source[localKey] ?? throw new InvalidOperationException($"The normalized table '{table.Culture.Name}' does not contain '{fullKey}'.");
+        source.Remove(localKey);
         return value;
     }
 
@@ -268,7 +262,7 @@ public sealed class JsonStringTableCollection {
     }
 
     private void RebuildAndComplete() {
-        var root = new JsonStringTableNode(string.Empty, string.Empty, JsonStringTableNodeKind.Group);
+        var root = new JsonStringTableGroup(string.Empty, string.Empty);
         foreach (var table in _tables) {
             MergeObject(table, table.Root, root);
         }
@@ -280,145 +274,66 @@ public sealed class JsonStringTableCollection {
         _rootGroup = root;
     }
 
-    private static void MergeObject(JsonStringTable table, JsonObject source, JsonStringTableNode target) {
-        foreach (var (segment, value) in source) {
-            ValidateSourceSegment(segment, table.FilePath);
+    private static void MergeObject(JsonStringTable table, JsonObject source, JsonStringTableGroup target) {
+        foreach (var (localKey, value) in source) {
+            JsonStringTableNode.ValidateSourceLocalKey(localKey, table.FilePath);
             if (value is JsonObject child) {
-                var childNode = target.GetOrAddChild(segment, JsonStringTableNodeKind.Group);
-                MergeObject(table, child, childNode);
+                var childGroup = target.GetOrAddGroup(localKey);
+                MergeObject(table, child, childGroup);
                 continue;
             }
 
             if (value is JsonValue jsonValue && jsonValue.TryGetValue<string>(out _)) {
-                target.GetOrAddChild(segment, JsonStringTableNodeKind.TextEntry);
+                target.GetOrAddEntry(localKey);
                 continue;
             }
 
-            var fullKey = CombineKey(target.FullKey, segment);
+            var fullKey = JsonStringTableNode.CombineKey(target.FullKey, localKey);
             throw new InvalidDataException($"The localization value '{fullKey}' in '{table.FilePath}' must be a string or object.");
         }
     }
 
-    private void CompleteObject(JsonStringTable table, JsonObject target, JsonStringTableNode schema) {
+    private void CompleteObject(JsonStringTable table, JsonObject target, JsonStringTableGroup schema) {
         foreach (var child in schema.Children.Values) {
-            var value = target[child.Segment];
+            var value = target[child.LocalKey];
             if (value is null) {
-                value = child.Kind == JsonStringTableNodeKind.Group ? new JsonObject() : JsonValue.Create(string.Empty);
-                target.Add(child.Segment, value);
+                value = child is JsonStringTableGroup ? new JsonObject() : JsonValue.Create(string.Empty);
+                target.Add(child.LocalKey, value);
                 _dirtyTables.Add(table);
             }
 
-            if (child.Kind == JsonStringTableNodeKind.Group) {
-                CompleteObject(table, (JsonObject)value, child);
+            if (child is JsonStringTableGroup childGroup) {
+                CompleteObject(table, (JsonObject)value, childGroup);
             }
         }
     }
 
-    private static int CountEmptyValues(JsonObject source, JsonStringTableNode schema) {
+    private static int CountEmptyValues(JsonObject source, JsonStringTableGroup schema) {
         var count = 0;
         foreach (var child in schema.Children.Values) {
-            var value = source[child.Segment] ?? throw new InvalidOperationException($"The normalized table does not contain '{child.FullKey}'.");
-            if (child.Kind == JsonStringTableNodeKind.TextEntry) {
-                if (value.GetValue<string>().Length == 0) {
-                    count++;
-                }
-            } else {
-                count += CountEmptyValues((JsonObject)value, child);
+            var value = source[child.LocalKey] ?? throw new InvalidOperationException($"The normalized table does not contain '{child.FullKey}'.");
+            switch (child) {
+                case JsonStringTableEntry:
+                    if (value.GetValue<string>().Length == 0) {
+                        count++;
+                    }
+
+                    break;
+                case JsonStringTableGroup childGroup:
+                    count += CountEmptyValues((JsonObject)value, childGroup);
+                    break;
             }
         }
 
         return count;
     }
 
-    private static IEnumerable<string> EnumerateKeys(JsonStringTableNode node) {
-        foreach (var child in node.Children.Values) {
-            if (child.Kind == JsonStringTableNodeKind.TextEntry) {
-                yield return child.FullKey;
-                continue;
-            }
-
-            foreach (var key in EnumerateKeys(child)) {
-                yield return key;
-            }
-        }
-    }
-
-    private JsonStringTableNode GetNode(string key) {
-        ArgumentException.ThrowIfNullOrEmpty(key);
-
-        var current = _rootGroup;
-        foreach (var segment in key.Split('.')) {
-            if (!current.TryGetChild(segment, out current)) {
-                throw new KeyNotFoundException($"The localization path '{key}' does not exist.");
-            }
-        }
-
-        return current;
-    }
-
-    private JsonStringTableNode GetGroupNode(string key) {
-        var node = key.Length == 0 ? _rootGroup : GetNode(key);
-        if (node.Kind != JsonStringTableNodeKind.Group) {
-            throw new ArgumentException($"The localization path '{key}' is not a group.", nameof(key));
-        }
-
-        return node;
-    }
-
     private static JsonObject GetObject(JsonObject root, string key) {
         var current = root;
-        foreach (var segment in key.Split('.', StringSplitOptions.RemoveEmptyEntries)) {
-            current = (JsonObject)(current[segment] ?? throw new InvalidOperationException($"The normalized table does not contain '{key}'."));
+        foreach (var localKey in key.Split('.', StringSplitOptions.RemoveEmptyEntries)) {
+            current = (JsonObject)(current[localKey] ?? throw new InvalidOperationException($"The normalized table does not contain '{key}'."));
         }
 
         return current;
-    }
-
-    private static string GetParentKey(string key) {
-        var index = key.LastIndexOf('.');
-        return index < 0 ? string.Empty : key[..index];
-    }
-
-    private static string CombineKey(string parent, string segment) {
-        return parent.Length == 0 ? segment : $"{parent}.{segment}";
-    }
-
-    private static void ValidateSegment(string segment, string parameterName) {
-        if (!IsValidSegment(segment)) {
-            throw new ArgumentException($"'{segment}' is not a valid lower_snake_case localization key segment.", parameterName);
-        }
-    }
-
-    private static void ValidateSourceSegment(string segment, string filePath) {
-        if (!IsValidSegment(segment)) {
-            throw new InvalidDataException($"The key segment '{segment}' in '{filePath}' is not valid lower_snake_case.");
-        }
-    }
-
-    private static bool IsValidSegment(string? segment) {
-        if (string.IsNullOrEmpty(segment) || segment[0] is < 'a' or > 'z') {
-            return false;
-        }
-
-        var previousUnderscore = false;
-        for (var index = 1; index < segment.Length; index++) {
-            var character = segment[index];
-            if (character == '_') {
-                if (previousUnderscore) {
-                    return false;
-                }
-
-                previousUnderscore = true;
-                continue;
-            }
-
-            if (character is not (>= 'a' and <= 'z') and not (>= '0' and <= '9')) {
-                return false;
-            }
-
-            previousUnderscore = false;
-        }
-
-        return !previousUnderscore;
     }
 }

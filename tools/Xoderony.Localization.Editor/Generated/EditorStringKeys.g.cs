@@ -10,7 +10,7 @@ public static partial class EditorStringKeys {
 
         public const string AddLocale = "context.add_locale";
 
-        public const string AddTextEntry = "context.add_text_entry";
+        public const string AddEntry = "context.add_entry";
 
         public const string Copy = "context.copy";
 
@@ -33,9 +33,9 @@ public static partial class EditorStringKeys {
 
         public const string AddLocaleTitle = "dialog.add_locale_title";
 
-        public const string AddTextEntryMessage = "dialog.add_text_entry_message";
+        public const string AddEntryMessage = "dialog.add_entry_message";
 
-        public const string AddTextEntryTitle = "dialog.add_text_entry_title";
+        public const string AddEntryTitle = "dialog.add_entry_title";
 
         public const string Cancel = "dialog.cancel";
 
@@ -164,9 +164,9 @@ public static partial class EditorStringKeys {
 
         public const string AddLocaleTooltip = "toolbar.add_locale_tooltip";
 
-        public const string AddTextEntry = "toolbar.add_text_entry";
+        public const string AddEntry = "toolbar.add_entry";
 
-        public const string AddTextEntryTooltip = "toolbar.add_text_entry_tooltip";
+        public const string AddEntryTooltip = "toolbar.add_entry_tooltip";
 
         public const string Copy = "toolbar.copy";
 

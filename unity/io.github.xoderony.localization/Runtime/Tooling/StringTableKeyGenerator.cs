@@ -52,23 +52,23 @@ public static class StringTableKeyGenerator {
         }
 
         var current = root;
-        var segments = key.Split('.');
-        for (var index = 0; index < segments.Length; index++) {
-            var segment = segments[index];
-            var identifier = ToPascalCase(segment);
+        var localKeys = key.Split('.');
+        for (var index = 0; index < localKeys.Length; index++) {
+            var localKey = localKeys[index];
+            var identifier = ToPascalCase(localKey);
             if (current.Children.TryGetValue(identifier, out var child)) {
-                if (!StringComparer.Ordinal.Equals(child.Segment, segment)) {
+                if (!StringComparer.Ordinal.Equals(child.LocalKey, localKey)) {
                     throw new ArgumentException(
-                        $"The key segment '{segment}' and '{child.Segment}' both generate the identifier '{identifier}'.",
+                        $"The local key '{localKey}' and '{child.LocalKey}' both generate the identifier '{identifier}'.",
                         parameterName);
                 }
             } else {
-                child = new KeyNode(segment);
+                child = new KeyNode(localKey);
                 current.Children.Add(identifier, child);
             }
 
             current = child;
-            if (index < segments.Length - 1 && current.Key is not null) {
+            if (index < localKeys.Length - 1 && current.Key is not null) {
                 throw new ArgumentException($"The key '{current.Key}' is also used as a key group.", parameterName);
             }
         }
@@ -174,7 +174,7 @@ public static class StringTableKeyGenerator {
         foreach (var (identifier, child) in node.Children) {
             if (StringComparer.Ordinal.Equals(identifier, containingTypeName)) {
                 throw new ArgumentException(
-                    $"The key segment '{child.Segment}' generates the same identifier as its containing type '{containingTypeName}'.",
+                    $"The local key '{child.LocalKey}' generates the same identifier as its containing type '{containingTypeName}'.",
                     parameterName);
             }
 
@@ -208,9 +208,9 @@ public static class StringTableKeyGenerator {
         return IsIdentifierStart(character) || character is >= '0' and <= '9';
     }
 
-    private sealed class KeyNode(string? segment) {
+    private sealed class KeyNode(string? localKey) {
 
-        public string? Segment { get; } = segment;
+        public string? LocalKey { get; } = localKey;
 
         public string? Key { get; set; }
 

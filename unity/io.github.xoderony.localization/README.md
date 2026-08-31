@@ -40,7 +40,7 @@ UI/
   zh-CN.json
 ```
 
-JSON 数据层只接受标准 JSON object 根。嵌套对象作为键组，字符串叶节点作为文本项；数组、number、boolean 和 null 会被拒绝。规范化后的公共结构由 `RootGroup` 暴露，节点类型使用 `Group` 和 `TextEntry`；新增节点分别调用 `AddGroup(...)` 与 `AddTextEntry(...)`。加载集合时会合并各 Locale 的文本项键，并在缺少对应文本项的 Locale 中自动写入空字符串。新增文本项和 Locale 同样以空字符串补齐所有翻译位置；重命名、移动与删除节点同时作用于集合中的所有 Locale。
+JSON 数据层只接受标准 JSON object 根。嵌套对象作为键组，字符串叶节点作为词条；数组、number、boolean 和 null 会被拒绝。规范化后的公共结构由 `RootGroup` 暴露，节点类型使用 `Group` 和 `Entry`；新增节点分别调用 `AddGroup(...)` 与 `AddEntry(...)`。加载集合时会合并各 Locale 的词条键，并在缺少对应词条的 Locale 中自动写入空字符串。新增词条和 Locale 同样以空字符串补齐所有翻译位置；重命名、移动与删除节点同时作用于集合中的所有 Locale。
 
 空字符串表示尚未完成翻译。普通保存允许空字符串。`tools/Xoderony.Localization.Editor` 是用于打开、编辑和保存语言表目录的 WPF 程序；它显示树的可见节点列表、动态 Locale 列和每种语言的空值统计，并可调用 `StringTableKeyGenerator` 为当前语言表生成强类型 C# 键，不需要打开 Unity。
 

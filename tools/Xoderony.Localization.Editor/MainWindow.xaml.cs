@@ -194,7 +194,7 @@ public partial class MainWindow : Window {
             return;
         }
 
-        NavigateToGroup(GetParentKey(_currentGroupKey));
+        NavigateToGroup(JsonStringTableNode.GetParentKey(_currentGroupKey));
     }
 
     private void HandleCellDoubleClick(object sender, MouseButtonEventArgs e) {
@@ -311,27 +311,27 @@ public partial class MainWindow : Window {
             return;
         }
 
-        var segment = Prompt(_localizer[EditorStringKeys.Dialog.AddGroupTitle], _localizer[EditorStringKeys.Dialog.AddGroupMessage]);
-        if (segment is null) {
+        var localKey = Prompt(_localizer[EditorStringKeys.Dialog.AddGroupTitle], _localizer[EditorStringKeys.Dialog.AddGroupMessage]);
+        if (localKey is null) {
             return;
         }
 
-        var key = CombineKey(_currentGroupKey, segment);
-        ChangeStructure(tables => tables.AddGroup(_currentGroupKey, segment), key);
+        var key = JsonStringTableNode.CombineKey(_currentGroupKey, localKey);
+        ChangeStructure(tables => tables.AddGroup(_currentGroupKey, localKey), key);
     }
 
-    private void AddTextEntry(object sender, RoutedEventArgs e) {
+    private void AddEntry(object sender, RoutedEventArgs e) {
         if (_tables is null) {
             return;
         }
 
-        var segment = Prompt(_localizer[EditorStringKeys.Dialog.AddTextEntryTitle], _localizer[EditorStringKeys.Dialog.AddTextEntryMessage]);
-        if (segment is null) {
+        var localKey = Prompt(_localizer[EditorStringKeys.Dialog.AddEntryTitle], _localizer[EditorStringKeys.Dialog.AddEntryMessage]);
+        if (localKey is null) {
             return;
         }
 
-        var key = CombineKey(_currentGroupKey, segment);
-        ChangeStructure(tables => tables.AddTextEntry(_currentGroupKey, segment), key);
+        var key = JsonStringTableNode.CombineKey(_currentGroupKey, localKey);
+        ChangeStructure(tables => tables.AddEntry(_currentGroupKey, localKey), key);
     }
 
     private void AddLocale(object sender, RoutedEventArgs e) {
@@ -359,13 +359,13 @@ public partial class MainWindow : Window {
         }
 
         var oldKey = node.FullKey;
-        var segment = Prompt(_localizer[EditorStringKeys.Dialog.RenameTitle], _localizer[EditorStringKeys.Dialog.RenameMessage], node.Segment);
-        if (segment is null || string.Equals(segment, node.Segment, StringComparison.Ordinal)) {
+        var localKey = Prompt(_localizer[EditorStringKeys.Dialog.RenameTitle], _localizer[EditorStringKeys.Dialog.RenameMessage], node.LocalKey);
+        if (localKey is null || string.Equals(localKey, node.LocalKey, StringComparison.Ordinal)) {
             return;
         }
 
-        var newKey = CombineKey(GetParentKey(oldKey), segment);
-        ChangeStructure(tables => tables.Rename(oldKey, segment), newKey);
+        var newKey = JsonStringTableNode.CombineKey(JsonStringTableNode.GetParentKey(oldKey), localKey);
+        ChangeStructure(tables => tables.Rename(oldKey, localKey), newKey);
     }
 
     private void CopySelection(object sender, RoutedEventArgs e) {
@@ -393,9 +393,9 @@ public partial class MainWindow : Window {
                 return;
             }
 
-            var targetSegment = GetAvailableCopySegment(payload.Segment);
-            var targetKey = CombineKey(_currentGroupKey, targetSegment);
-            ChangeStructure(tables => LocalizationClipboard.Paste(tables, _currentGroupKey, targetSegment, payload), targetKey);
+            var targetLocalKey = GetAvailableCopyLocalKey(payload.LocalKey);
+            var targetKey = JsonStringTableNode.CombineKey(_currentGroupKey, targetLocalKey);
+            ChangeStructure(tables => LocalizationClipboard.Paste(tables, _currentGroupKey, targetLocalKey, payload), targetKey);
         } catch (ExternalException exception) {
             ShowError(exception.Message);
         }
@@ -415,13 +415,13 @@ public partial class MainWindow : Window {
             _localizer[EditorStringKeys.Dialog.MoveConfirm],
             _localizer[EditorStringKeys.Dialog.Cancel],
             _localizer[EditorStringKeys.Dialog.MoveSameParent],
-            _localizer[EditorStringKeys.Dialog.MoveConflict, node.Segment]
+            _localizer[EditorStringKeys.Dialog.MoveConflict, node.LocalKey]
         ) { Owner = this };
         if (dialog.ShowDialog() != true) {
             return;
         }
 
-        var movedKey = CombineKey(dialog.SelectedGroupKey, node.Segment);
+        var movedKey = JsonStringTableNode.CombineKey(dialog.SelectedGroupKey, node.LocalKey);
         ChangeStructure(tables => tables.Move(node.FullKey, dialog.SelectedGroupKey), movedKey);
     }
 
@@ -509,7 +509,7 @@ public partial class MainWindow : Window {
         var rows = new List<LocalizationRow>(currentGroup.Children.Count);
         if (searchText.Length == 0) {
             foreach (var child in currentGroup.Children.Values) {
-                AddRow(rows, child, child.Segment);
+                AddRow(rows, child, child.LocalKey);
             }
         } else {
             AddSearchRows(rows, currentGroup, searchText);
@@ -529,7 +529,7 @@ public partial class MainWindow : Window {
         UpdateStatus();
     }
 
-    private void AddSearchRows(List<LocalizationRow> rows, JsonStringTableNode group, string searchText) {
+    private void AddSearchRows(List<LocalizationRow> rows, JsonStringTableGroup group, string searchText) {
         Debug.Assert(_tables is not null);
         foreach (var child in group.Children.Values) {
             if (MatchesSearch(_tables, child, searchText)) {
@@ -537,8 +537,8 @@ public partial class MainWindow : Window {
                 AddRow(rows, child, relativeKey.Replace(".", " / "));
             }
 
-            if (child.Kind == JsonStringTableNodeKind.Group) {
-                AddSearchRows(rows, child, searchText);
+            if (child is JsonStringTableGroup childGroup) {
+                AddSearchRows(rows, childGroup, searchText);
             }
         }
     }
@@ -547,7 +547,7 @@ public partial class MainWindow : Window {
         Debug.Assert(_tables is not null);
         var row = new LocalizationRow(node, displayName);
         foreach (var culture in _tables.Cultures) {
-            var value = node.Kind == JsonStringTableNodeKind.TextEntry ? _tables.GetValue(culture, node.FullKey) : string.Empty;
+            var value = node is JsonStringTableEntry ? _tables.GetValue(culture, node.FullKey) : string.Empty;
             row.Values.Add(culture.Name, value);
         }
 
@@ -575,20 +575,9 @@ public partial class MainWindow : Window {
         };
     }
 
-    private JsonStringTableNode GetCurrentGroup() {
+    private JsonStringTableGroup GetCurrentGroup() {
         Debug.Assert(_tables is not null);
-        var current = _tables.RootGroup;
-        if (_currentGroupKey.Length == 0) {
-            return current;
-        }
-
-        foreach (var segment in _currentGroupKey.Split('.')) {
-            Debug.Assert(current.Children.ContainsKey(segment));
-            current = current.Children[segment];
-            Debug.Assert(current.Kind == JsonStringTableNodeKind.Group);
-        }
-
-        return current;
+        return _tables.RootGroup.GetGroup(_currentGroupKey);
     }
 
     private static bool MatchesSearch(JsonStringTableCollection tables, JsonStringTableNode node, string searchText) {
@@ -596,7 +585,7 @@ public partial class MainWindow : Window {
             return true;
         }
 
-        if (node.Kind == JsonStringTableNodeKind.TextEntry) {
+        if (node is JsonStringTableEntry) {
             foreach (var culture in tables.Cultures) {
                 if (tables.GetValue(culture, node.FullKey).Contains(searchText, StringComparison.OrdinalIgnoreCase)) {
                     return true;
@@ -690,12 +679,13 @@ public partial class MainWindow : Window {
     private void UpdateCommandState() {
         var tables = _tables;
         var hasTables = tables is not null;
+        var hasLocales = tables is not null && tables.Cultures.Count > 0;
         var hasSelection = TableGrid.SelectedItem is LocalizationRow;
-        var canPaste = hasTables && LocalizationClipboard.ContainsData();
+        var canPaste = hasLocales && LocalizationClipboard.ContainsData();
         SaveButton.IsEnabled = tables is not null && tables.IsDirty;
-        GenerateKeysButton.IsEnabled = hasTables;
-        AddGroupButton.IsEnabled = hasTables;
-        AddTextEntryButton.IsEnabled = hasTables;
+        GenerateKeysButton.IsEnabled = hasLocales;
+        AddGroupButton.IsEnabled = hasLocales;
+        AddEntryButton.IsEnabled = hasLocales;
         AddLocaleButton.IsEnabled = hasTables;
         RenameButton.IsEnabled = hasSelection;
         MoveButton.IsEnabled = hasSelection;
@@ -730,16 +720,16 @@ public partial class MainWindow : Window {
         AddBreadcrumb(directoryName.Length == 0 ? directoryPath : directoryName, string.Empty, directoryPath, isRoot: true);
 
         var key = string.Empty;
-        foreach (var segment in _currentGroupKey.Split('.', StringSplitOptions.RemoveEmptyEntries)) {
-            key = CombineKey(key, segment);
-            AddBreadcrumb(segment, key, key);
+        foreach (var localKey in _currentGroupKey.Split('.', StringSplitOptions.RemoveEmptyEntries)) {
+            key = JsonStringTableNode.CombineKey(key, localKey);
+            AddBreadcrumb(localKey, key, key);
         }
     }
 
     private void AddBreadcrumb(string label, string groupKey, string toolTip, bool isRoot = false) {
         if (!isRoot) {
             BreadcrumbPanel.Children.Add(new TextBlock {
-                Text = "›",
+                Text = "\u203A",
                 Style = (Style)FindResource("BreadcrumbSeparatorTextStyle")
             });
         }
@@ -913,28 +903,19 @@ public partial class MainWindow : Window {
         }
     }
 
-    private static string GetParentKey(string key) {
-        var separatorIndex = key.LastIndexOf('.');
-        return separatorIndex < 0 ? string.Empty : key[..separatorIndex];
-    }
-
-    private static string CombineKey(string parentKey, string segment) {
-        return parentKey.Length == 0 ? segment : $"{parentKey}.{segment}";
-    }
-
-    private string GetAvailableCopySegment(string sourceSegment) {
+    private string GetAvailableCopyLocalKey(string sourceLocalKey) {
         var currentGroup = GetCurrentGroup();
-        if (!currentGroup.Children.ContainsKey(sourceSegment)) {
-            return sourceSegment;
+        if (!currentGroup.Children.ContainsKey(sourceLocalKey)) {
+            return sourceLocalKey;
         }
 
-        var candidate = $"{sourceSegment}_copy";
+        var candidate = $"{sourceLocalKey}_copy";
         if (!currentGroup.Children.ContainsKey(candidate)) {
             return candidate;
         }
 
         for (var suffix = 2; ; suffix++) {
-            candidate = $"{sourceSegment}_copy_{suffix}";
+            candidate = $"{sourceLocalKey}_copy_{suffix}";
             if (!currentGroup.Children.ContainsKey(candidate)) {
                 return candidate;
             }
@@ -1021,8 +1002,8 @@ public partial class MainWindow : Window {
 
         public string DisplayName { get; } = displayName;
 
-        public string IconGlyph { get; } = node.Kind == JsonStringTableNodeKind.Group ? "\uE8B7" : "\uE8A5";
+        public string IconGlyph { get; } = node is JsonStringTableGroup ? "\uE8B7" : "\uE8A5";
 
-        public bool IsGroup { get; } = node.Kind == JsonStringTableNodeKind.Group;
+        public bool IsGroup { get; } = node is JsonStringTableGroup;
     }
 }
