@@ -15,7 +15,7 @@
 - [`Styles/VisualStudio.xaml`](./Styles/VisualStudio.xaml)：字体和浅暗主题共用的控件样式。
 - [`Styles/VisualStudioLight.xaml`](./Styles/VisualStudioLight.xaml)：浅色主题颜色和画刷。
 - [`Styles/VisualStudioDark.xaml`](./Styles/VisualStudioDark.xaml)：深色主题颜色和画刷。
-- [`../../unity/io.github.xoderony.localization/Runtime/Json/JsonStringTableCollection.cs`](../../unity/io.github.xoderony.localization/Runtime/Json/JsonStringTableCollection.cs)：JSON 语言表数据层。
+- [`../../unity/io.github.xoderony.localization/Runtime/Json/JsonLocaleTableCollection.cs`](../../unity/io.github.xoderony.localization/Runtime/Json/JsonLocaleTableCollection.cs)：JSON 语言表数据层。
 
 ## 1. 先建立整体认识
 
@@ -35,7 +35,7 @@ MainWindow.xaml.cs
 窗口状态、导航、搜索、编辑提交、命令启用状态
   │  调用公开 API
   ▼
-用户 JsonStringTableCollection
+用户 JsonLocaleTableCollection
 加载、修改、复制、移动、删除、保存用户语言表
 ```
 
@@ -185,7 +185,7 @@ WPF 路由事件主要有两种传播方向：
 - `Preview...` 事件从窗口向实际控件传播，称为隧道路由。
 - 普通事件从实际控件向父容器传播，称为冒泡路由。
 
-窗口使用 `PreviewKeyDown="OnPreviewKeyDown"`，因此可以统一处理 `Ctrl+S`、F2、Delete、Backspace 等快捷键。方法先判断焦点是否位于 `TextBox`；如果正在输入文字，就不抢占 Backspace、复制和粘贴。
+窗口使用 `PreviewKeyDown="OnPreviewKeyDown"`，因此可以统一处理 `Ctrl+S`、`Ctrl+C/X/V`、F2、Delete、Backspace 等快捷键。方法先判断焦点是否位于 `TextBox`；如果正在输入文字，就不抢占 Backspace 与剪贴板快捷键。
 
 ## 6. 数据绑定和 DataContext
 
@@ -223,7 +223,7 @@ CultureNameToTranslation       culture 名称到翻译字符串的字典
 IsGroup      是否为键组，并驱动键组与词条的图标样式
 ```
 
-它没有写回 JSON 的职责。真正的数据修改仍通过 `JsonStringTableCollection` 完成。
+它没有写回 JSON 的职责。真正的数据修改仍通过 `JsonLocaleTableCollection` 完成。
 
 ## 7. 为什么 Locale 列必须动态创建
 
@@ -237,7 +237,7 @@ AutoGenerateColumns="False"
 
 1. 清空旧列。
 2. 创建固定的“名称”列。
-3. 遍历 `_tables.Cultures`。
+3. 遍历 `_tables.GetCultures()`。
 4. 为每个 culture 创建一个 `DataGridTextColumn`。
 
 每个翻译列绑定到类似下面的路径：
@@ -293,7 +293,7 @@ TextBox 进入编辑状态
 EndCellEdit
   ↓
 TryApplyValue
-  ├─ _tables.SetValue(culture, fullKey, value)
+  ├─ _tables.SetTranslation(culture, fullKey, translation)
   ├─ row.CultureNameToTranslation[culture.Name] = value
   └─ UpdateStatus()
 ```
@@ -376,7 +376,7 @@ Backspace 由窗口的 `OnPreviewKeyDown()` 捕获，并通过 `GetParentKey()` 
 - 右键菜单 `Click="Rename"`。
 - F2 在 `OnPreviewKeyDown()` 中调用 `Rename(...)`。
 
-它们最终进入同一个方法，避免不同入口产生不同规则。新增、删除、移动、复制和粘贴也采用相同思路。
+它们最终进入同一个方法，避免不同入口产生不同规则。新增、删除、移动和复制也采用相同思路。
 
 `SelectRowOnRightClick()` 会在右键菜单弹出前选中鼠标所在行，否则用户可能右键 A 行，操作却作用在之前选中的 B 行。
 
@@ -384,25 +384,14 @@ Backspace 由窗口的 `OnPreviewKeyDown()` 捕获，并通过 `GetParentKey()` 
 
 - 没有打开语言表时禁用保存、增加和搜索。
 - 没有选择行时禁用重命名、移动、复制和删除。
-- Windows 剪贴板没有文本或编辑器数据时禁用粘贴。
 
-## 15. 复制、粘贴和移动
+## 15. 复制、剪切、粘贴与移动
 
-复制会把所选节点转换成一份自包含的 JSON 快照，其中包含节点结构和全部 Locale 的翻译，然后同时以编辑器专用格式和普通 Unicode 文本写入 Windows 剪贴板。
+**剪贴板（Ctrl+C / X / V）**：快照写入 Windows 剪贴板；剪切为 `Set` 后立刻 `Remove`；粘贴到**当前键组**，同名时用 `AllocateLocalKey`。
 
-```text
-复制节点 → 生成 JSON 快照 → Windows 剪贴板
-粘贴    → 解析并校验快照 → 导入当前键组
-```
+**复制到 / 移动到**：目标键组对话框 → `Copy` / `Move`（不经剪贴板）。复制允许同父；移动禁止同父。
 
-- 同名副本自动使用 `_copy`、`_copy_2` 等合法键段。
-- 目标中存在而快照中缺少的 Locale 使用空字符串。
-- 快照中存在而目标中没有的 Locale 不会自动创建。
-- 剪切已被显式的“移动到”替代，因此窗口中不再保存待处理的源路径或操作类型。
-
-“移动到”对话框只显示键组。用户选择目标后立即调用 `_tables.Move(...)`；源键组自身和子键组不会出现在可选目标中，同一键组和名称冲突则在确认前提示。
-
-当 TextBox 正在编辑时，窗口不会拦截 `Ctrl+C/V`，所以快捷键仍作用于文字，而不是节点。
+当 TextBox 正在编辑时，窗口不拦截 Ctrl+C/X/V。
 
 ## 16. 结构修改的统一入口
 
@@ -428,14 +417,13 @@ Locale 数量变化 → 结束编辑后重建列和行
 `OpenDirectory()` 使用 `OpenFolderDialog` 选择目录，再调用：
 
 ```csharp
-JsonStringTableCollection.LoadDirectory(dialog.FolderName)
+JsonLocaleTableCollection.LoadDirectory(dialog.FolderName)
 ```
 
 打开成功后会：
 
 - 保存目录路径。
 - 返回根键组。
-- 清空内部剪贴板。
 - 重建面包屑、Locale 列和行。
 
 数据修改后，数据层的 `IsDirty` 变为 `true`。`UpdateStatus()` 据此更新：
@@ -484,8 +472,8 @@ WPF 控件会被模板展开为更细的可视元素。例如鼠标实际点击�
 | 修改动态 Locale 列 | `RebuildColumns()`、`CreateValueColumn()` |
 | 修改翻译提交行为 | `BeginCellEdit()`、`EndCellEdit()`、`TryApplyValue()` |
 | 修改重命名行为 | `Rename()`、`Prompt()`、`ChangeStructure()` |
-| 修改增删复制粘贴 | 对应事件方法与 `ChangeStructure()` |
-| 修改 JSON 契约或保存语义 | `JsonStringTableCollection`，而不是 XAML |
+| 修改增删复制移动 | 对应事件方法与 `ChangeStructure()` |
+| 修改 JSON 契约或保存语义 | `JsonLocaleTableCollection`，而不是 XAML |
 
 ## 21. 推荐的源码阅读顺序
 

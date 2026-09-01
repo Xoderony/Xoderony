@@ -6,7 +6,7 @@ using Xunit;
 
 namespace Xoderony.Localization.Json.Tests;
 
-public sealed class JsonStringTableCollectionTests {
+public sealed class JsonLocaleTableCollectionTests {
 
     private static readonly CultureInfo English = CultureInfo.GetCultureInfo("en-US");
     private static readonly CultureInfo SimplifiedChinese = CultureInfo.GetCultureInfo("zh-CN");
@@ -15,7 +15,7 @@ public sealed class JsonStringTableCollectionTests {
     public void LoadDirectoryUsesSharedKeysAndFlatLocaleValues() {
         var directoryPath = CreateTempDirectory();
         try {
-            WriteAllText(directoryPath, JsonStringTableCollection.KeysFileName, """
+            WriteAllText(directoryPath, JsonLocaleTableCollection.KeysFileName, """
                 {
                   "menu": {
                     "start": null,
@@ -35,11 +35,11 @@ public sealed class JsonStringTableCollectionTests {
                 }
                 """);
 
-            var collection = JsonStringTableCollection.LoadDirectory(directoryPath);
+            var collection = JsonLocaleTableCollection.LoadDirectory(directoryPath);
 
-            Assert.Equal(["menu.quit", "menu.start"], collection.GetKeys());
-            Assert.Equal(string.Empty, collection.GetValue(English, "menu.quit"));
-            Assert.Equal("开始", collection.GetValue(SimplifiedChinese, "menu.start"));
+            Assert.Equal(["menu.quit", "menu.start"], collection.GetEntryKeys());
+            Assert.Equal(string.Empty, collection.GetTranslation(English, "menu.quit"));
+            Assert.Equal("开始", collection.GetTranslation(SimplifiedChinese, "menu.start"));
             Assert.False(collection.IsDirty);
         } finally {
             Directory.Delete(directoryPath, recursive: true);
@@ -50,7 +50,7 @@ public sealed class JsonStringTableCollectionTests {
     public void StructuralChangesUpdateKeysAndEveryLocale() {
         var directoryPath = CreateTempDirectory();
         try {
-            WriteAllText(directoryPath, JsonStringTableCollection.KeysFileName, """
+            WriteAllText(directoryPath, JsonLocaleTableCollection.KeysFileName, """
                 {
                   "menu": {
                     "start": null
@@ -68,19 +68,54 @@ public sealed class JsonStringTableCollectionTests {
                 }
                 """);
 
-            var collection = JsonStringTableCollection.LoadDirectory(directoryPath);
+            var collection = JsonLocaleTableCollection.LoadDirectory(directoryPath);
             collection.AddGroup("menu", "settings");
             collection.AddEntry("menu.settings", "title");
-            collection.SetValue(English, "menu.settings.title", "Settings");
-            collection.Copy("menu.settings", "", "preferences");
-            collection.Rename("preferences", "options");
+            collection.SetTranslation(English, "menu.settings.title", "Settings");
+            collection.Copy("menu.settings", "");
+            collection.Rename("settings", "options");
             collection.Move("options", "menu");
             collection.Remove("menu.settings");
 
-            Assert.Equal("Settings", collection.GetValue(English, "menu.options.title"));
-            Assert.Equal(string.Empty, collection.GetValue(SimplifiedChinese, "menu.options.title"));
-            Assert.Equal(["menu.options.title", "menu.start"], collection.GetKeys());
+            Assert.Equal("Settings", collection.GetTranslation(English, "menu.options.title"));
+            Assert.Equal(string.Empty, collection.GetTranslation(SimplifiedChinese, "menu.options.title"));
+            Assert.Equal(["menu.options.title", "menu.start"], collection.GetEntryKeys());
             Assert.True(collection.IsDirty);
+        } finally {
+            Directory.Delete(directoryPath, recursive: true);
+        }
+    }
+
+    [Fact]
+    public void CopyAndMoveAllocateLocalKeyOnConflict() {
+        var directoryPath = CreateTempDirectory();
+        try {
+            WriteAllText(directoryPath, JsonLocaleTableCollection.KeysFileName, """
+                {
+                  "menu": {
+                    "title": null
+                  },
+                  "title": null
+                }
+                """);
+            WriteAllText(directoryPath, "en-US.json", """
+                {
+                  "menu.title": "Menu Title",
+                  "title": "Root Title"
+                }
+                """);
+
+            var collection = JsonLocaleTableCollection.LoadDirectory(directoryPath);
+
+            var copiedKey = collection.Copy("menu.title", "");
+            Assert.Equal("title_1", copiedKey);
+            Assert.Equal("Menu Title", collection.GetTranslation(English, "title_1"));
+            Assert.Equal("Root Title", collection.GetTranslation(English, "title"));
+
+            var movedKey = collection.Move("menu.title", "");
+            Assert.Equal("title_2", movedKey);
+            Assert.Equal("Menu Title", collection.GetTranslation(English, "title_2"));
+            Assert.False(collection.RootKeyGroup.TryGet("menu.title", out _));
         } finally {
             Directory.Delete(directoryPath, recursive: true);
         }
@@ -94,9 +129,9 @@ public sealed class JsonStringTableCollectionTests {
     public void LocaleLoadRejectsNonStringValues(string json) {
         var directoryPath = CreateTempDirectory();
         try {
-            WriteAllText(directoryPath, JsonStringTableCollection.KeysFileName, "{ \"menu\": { \"start\": null } }");
+            WriteAllText(directoryPath, JsonLocaleTableCollection.KeysFileName, "{ \"menu\": { \"start\": null } }");
             WriteAllText(directoryPath, "en-US.json", json);
-            Assert.Throws<InvalidDataException>(() => JsonStringTableCollection.LoadDirectory(directoryPath));
+            Assert.Throws<InvalidDataException>(() => JsonLocaleTableCollection.LoadDirectory(directoryPath));
         } finally {
             Directory.Delete(directoryPath, recursive: true);
         }
@@ -109,8 +144,8 @@ public sealed class JsonStringTableCollectionTests {
     public void KeysLoadRejectsNonNullNonObjectLeaves(string json) {
         var directoryPath = CreateTempDirectory();
         try {
-            WriteAllText(directoryPath, JsonStringTableCollection.KeysFileName, json);
-            Assert.Throws<InvalidDataException>(() => JsonStringTableCollection.LoadDirectory(directoryPath));
+            WriteAllText(directoryPath, JsonLocaleTableCollection.KeysFileName, json);
+            Assert.Throws<InvalidDataException>(() => JsonLocaleTableCollection.LoadDirectory(directoryPath));
         } finally {
             Directory.Delete(directoryPath, recursive: true);
         }
@@ -124,9 +159,9 @@ public sealed class JsonStringTableCollectionTests {
         var directoryPath = CreateTempDirectory();
         var filePath = Path.Combine(directoryPath, "en-US.json");
         try {
-            WriteAllText(directoryPath, JsonStringTableCollection.KeysFileName, "{ \"menu\": { \"start\": null } }");
+            WriteAllText(directoryPath, JsonLocaleTableCollection.KeysFileName, "{ \"menu\": { \"start\": null } }");
             File.WriteAllText(filePath, json);
-            Assert.Throws<InvalidDataException>(() => JsonStringTable.Load(English, filePath));
+            Assert.Throws<InvalidDataException>(() => JsonLocaleTable.Load(English, filePath));
         } finally {
             Directory.Delete(directoryPath, recursive: true);
         }
@@ -137,23 +172,23 @@ public sealed class JsonStringTableCollectionTests {
         var directoryPath = CreateTempDirectory();
         var filePath = Path.Combine(directoryPath, "zh-CN.json");
         try {
-            var collection = JsonStringTableCollection.LoadDirectory(directoryPath);
+            var collection = JsonLocaleTableCollection.LoadDirectory(directoryPath);
 
-            Assert.Empty(collection.Cultures);
-            Assert.Empty(collection.GetKeys());
+            Assert.Equal(0, collection.CultureCount);
+            Assert.Empty(collection.GetEntryKeys());
             Assert.False(collection.IsDirty);
 
             collection.AddLocale(SimplifiedChinese, filePath);
             collection.AddEntry(string.Empty, "title");
-            collection.SetValue(SimplifiedChinese, "title", "标题");
+            collection.SetTranslation(SimplifiedChinese, "title", "标题");
             collection.Save();
 
-            Assert.Equal([SimplifiedChinese], collection.Cultures);
-            Assert.Equal(["title"], collection.GetKeys());
+            Assert.Equal([SimplifiedChinese], collection.GetCultures());
+            Assert.Equal(["title"], collection.GetEntryKeys());
             Assert.True(File.Exists(filePath));
-            Assert.True(File.Exists(Path.Combine(directoryPath, JsonStringTableCollection.KeysFileName)));
+            Assert.True(File.Exists(Path.Combine(directoryPath, JsonLocaleTableCollection.KeysFileName)));
             Assert.Contains("标题", File.ReadAllText(filePath), StringComparison.Ordinal);
-            Assert.Contains("\"title\": null", File.ReadAllText(Path.Combine(directoryPath, JsonStringTableCollection.KeysFileName)), StringComparison.Ordinal);
+            Assert.Contains("\"title\": null", File.ReadAllText(Path.Combine(directoryPath, JsonLocaleTableCollection.KeysFileName)), StringComparison.Ordinal);
         } finally {
             Directory.Delete(directoryPath, recursive: true);
         }
@@ -164,7 +199,7 @@ public sealed class JsonStringTableCollectionTests {
         var directoryPath = CreateTempDirectory();
         var filePath = Path.Combine(directoryPath, "zh-CN.json");
         try {
-            WriteAllText(directoryPath, JsonStringTableCollection.KeysFileName, """
+            WriteAllText(directoryPath, JsonLocaleTableCollection.KeysFileName, """
                 {
                   "menu": {
                     "title": null
@@ -177,8 +212,8 @@ public sealed class JsonStringTableCollectionTests {
                 }
                 """);
 
-            var collection = JsonStringTableCollection.LoadDirectory(directoryPath);
-            collection.SetValue(SimplifiedChinese, "menu.title", "本地化标题");
+            var collection = JsonLocaleTableCollection.LoadDirectory(directoryPath);
+            collection.SetTranslation(SimplifiedChinese, "menu.title", "本地化标题");
             collection.Save();
 
             var source = File.ReadAllText(filePath);

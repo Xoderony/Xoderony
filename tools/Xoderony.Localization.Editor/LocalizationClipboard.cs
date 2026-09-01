@@ -18,13 +18,13 @@ internal static class LocalizationClipboard {
 
     public static bool ContainsData() {
         try {
-            return Clipboard.ContainsData(DataFormat) || Clipboard.ContainsText(TextDataFormat.UnicodeText);
+            return Clipboard.ContainsData(DataFormat);
         } catch (ExternalException) {
             return false;
         }
     }
 
-    public static void Set(JsonStringTableCollection tables, JsonStringTableNode node) {
+    public static void Set(JsonLocaleTableCollection tables, JsonKeyNode node) {
         ArgumentNullException.ThrowIfNull(tables);
         ArgumentNullException.ThrowIfNull(node);
 
@@ -42,7 +42,14 @@ internal static class LocalizationClipboard {
     }
 
     public static bool TryGet([NotNullWhen(true)] out ClipboardPayload? payload) {
-        var data = Clipboard.GetDataObject();
+        IDataObject? data;
+        try {
+            data = Clipboard.GetDataObject();
+        } catch (ExternalException) {
+            payload = null;
+            return false;
+        }
+
         var json = data?.GetData(DataFormat) as string;
         if (json is null && data?.GetDataPresent(DataFormats.UnicodeText) == true) {
             json = data.GetData(DataFormats.UnicodeText) as string;
@@ -66,7 +73,7 @@ internal static class LocalizationClipboard {
         if (payload is null
             || !string.Equals(payload.Format, FormatName, StringComparison.Ordinal)
             || payload.Version != FormatVersion
-            || !JsonStringTableNode.IsValidLocalKey(payload.LocalKey)
+            || !JsonKeyNode.IsLowerSnakeCaseLocalKey(payload.LocalKey)
             || !IsValidNode(payload.Node)) {
             payload = null;
             return false;
@@ -75,15 +82,15 @@ internal static class LocalizationClipboard {
         return true;
     }
 
-    public static void Paste(JsonStringTableCollection tables, string parentGroupKey, string localKey, ClipboardPayload payload) {
+    public static void Paste(JsonLocaleTableCollection tables, string parentGroupKey, string localKey, ClipboardPayload payload) {
         ArgumentNullException.ThrowIfNull(tables);
         ArgumentNullException.ThrowIfNull(payload);
 
         AddNode(tables, parentGroupKey, localKey, payload.Node);
     }
 
-    private static ClipboardNode CreateNode(JsonStringTableCollection tables, JsonStringTableNode node) {
-        if (node is JsonStringTableGroup group) {
+    private static ClipboardNode CreateNode(JsonLocaleTableCollection tables, JsonKeyNode node) {
+        if (node is JsonKeyGroup group) {
             var localKeyToChild = new Dictionary<string, ClipboardNode>(StringComparer.Ordinal);
             foreach (var child in group.LocalKeyToChild.Values) {
                 localKeyToChild.Add(child.LocalKey, CreateNode(tables, child));
@@ -93,15 +100,15 @@ internal static class LocalizationClipboard {
         }
 
         var cultureNameToTranslation = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
-        foreach (var culture in tables.Cultures) {
-            cultureNameToTranslation.Add(culture.Name, tables.GetValue(culture, node.FullKey));
+        foreach (var culture in tables.GetCultures()) {
+            cultureNameToTranslation.Add(culture.Name, tables.GetTranslation(culture, node.FullKey));
         }
 
         return new ClipboardNode { CultureNameToTranslation = cultureNameToTranslation };
     }
 
-    private static void AddNode(JsonStringTableCollection tables, string parentGroupKey, string localKey, ClipboardNode node) {
-        var key = JsonStringTableNode.CombineKey(parentGroupKey, localKey);
+    private static void AddNode(JsonLocaleTableCollection tables, string parentGroupKey, string localKey, ClipboardNode node) {
+        var key = JsonKeyNode.CombineKey(parentGroupKey, localKey);
         if (node.LocalKeyToChild is not null) {
             tables.AddGroup(parentGroupKey, localKey);
             foreach (var child in node.LocalKeyToChild) {
@@ -112,9 +119,9 @@ internal static class LocalizationClipboard {
         }
 
         tables.AddEntry(parentGroupKey, localKey);
-        foreach (var culture in tables.Cultures) {
+        foreach (var culture in tables.GetCultures()) {
             if (TryGetValue(node.CultureNameToTranslation!, culture, out var value)) {
-                tables.SetValue(culture, key, value);
+                tables.SetTranslation(culture, key, value);
             }
         }
     }
@@ -147,7 +154,7 @@ internal static class LocalizationClipboard {
         }
 
         foreach (var child in node.LocalKeyToChild!) {
-            if (!JsonStringTableNode.IsValidLocalKey(child.Key) || !IsValidNode(child.Value)) {
+            if (!JsonKeyNode.IsLowerSnakeCaseLocalKey(child.Key) || !IsValidNode(child.Value)) {
                 return false;
             }
         }
@@ -156,8 +163,6 @@ internal static class LocalizationClipboard {
     }
 
     internal sealed class ClipboardPayload {
-
-        public ClipboardPayload() { }
 
         public string Format { get; init; } = string.Empty;
 
@@ -169,8 +174,6 @@ internal static class LocalizationClipboard {
     }
 
     internal sealed class ClipboardNode {
-
-        public ClipboardNode() { }
 
         [JsonPropertyName("Children")]
         public Dictionary<string, ClipboardNode>? LocalKeyToChild { get; init; }

@@ -9,26 +9,31 @@ namespace Xoderony.Localization.Editor;
 
 public partial class MoveDestinationDialog : Window {
 
-    private readonly string _conflictMessage;
     private readonly string _currentParentKey;
-    private readonly string _sameParentMessage;
-    private readonly string _sourceLocalKey;
+    private readonly string? _sameParentMessage;
 
     public string SelectedGroupKey { get; private set; } = string.Empty;
 
-    public MoveDestinationDialog(JsonStringTableGroup rootGroup, JsonStringTableNode source, string rootDisplayName, string title, string message, string moveText, string cancelText, string sameParentMessage, string conflictMessage) {
+    // sameParentMessage 非 null 时禁止选择当前父键组；null 则允许（复制）。
+    public MoveDestinationDialog(
+        JsonKeyGroup rootGroup,
+        JsonKeyNode source,
+        string rootDisplayName,
+        string title,
+        string message,
+        string confirmText,
+        string cancelText,
+        string? sameParentMessage) {
         ArgumentNullException.ThrowIfNull(rootGroup);
         ArgumentNullException.ThrowIfNull(source);
 
         InitializeComponent();
         Title = title;
         MessageText.Text = message;
-        MoveButton.Content = moveText;
+        MoveButton.Content = confirmText;
         CancelButton.Content = cancelText;
-        _sourceLocalKey = source.LocalKey;
-        _currentParentKey = JsonStringTableNode.GetParentKey(source.FullKey);
+        _currentParentKey = JsonKeyNode.GetParentKey(source.FullKey);
         _sameParentMessage = sameParentMessage;
-        _conflictMessage = conflictMessage;
 
         var root = CreateItem(rootGroup, source.FullKey, _currentParentKey, rootDisplayName);
         GroupTree.ItemsSource = new[] { root };
@@ -53,15 +58,9 @@ public partial class MoveDestinationDialog : Window {
 
     private void UpdateSelection(MoveDestinationItem item) {
         SelectedGroupKey = item.Node.FullKey;
-        if (string.Equals(SelectedGroupKey, _currentParentKey, StringComparison.Ordinal)) {
+        if (_sameParentMessage is not null && string.Equals(SelectedGroupKey, _currentParentKey, StringComparison.Ordinal)) {
             MoveButton.IsEnabled = false;
             ValidationText.Text = _sameParentMessage;
-            return;
-        }
-
-        if (item.Node.LocalKeyToChild.ContainsKey(_sourceLocalKey)) {
-            MoveButton.IsEnabled = false;
-            ValidationText.Text = _conflictMessage;
             return;
         }
 
@@ -69,10 +68,10 @@ public partial class MoveDestinationDialog : Window {
         ValidationText.Text = string.Empty;
     }
 
-    private static MoveDestinationItem CreateItem(JsonStringTableGroup group, string excludedGroupKey, string selectedGroupKey, string rootDisplayName) {
+    private static MoveDestinationItem CreateItem(JsonKeyGroup group, string excludedGroupKey, string selectedGroupKey, string rootDisplayName) {
         var children = new List<MoveDestinationItem>();
         foreach (var child in group.LocalKeyToChild.Values) {
-            if (child is not JsonStringTableGroup childGroup || string.Equals(child.FullKey, excludedGroupKey, StringComparison.Ordinal)) {
+            if (child is not JsonKeyGroup childGroup || string.Equals(child.FullKey, excludedGroupKey, StringComparison.Ordinal)) {
                 continue;
             }
 
@@ -92,9 +91,9 @@ public partial class MoveDestinationDialog : Window {
         );
     }
 
-    private sealed class MoveDestinationItem(JsonStringTableGroup node, string displayName, IReadOnlyList<MoveDestinationItem> children, bool isExpanded, bool isSelected) {
+    private sealed class MoveDestinationItem(JsonKeyGroup node, string displayName, IReadOnlyList<MoveDestinationItem> children, bool isExpanded, bool isSelected) {
 
-        public JsonStringTableGroup Node { get; } = node;
+        public JsonKeyGroup Node { get; } = node;
 
         public string DisplayName { get; } = displayName;
 

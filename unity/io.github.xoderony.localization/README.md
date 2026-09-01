@@ -41,7 +41,7 @@ UI/
   zh-CN.json
 ```
 
-`keys.json` 是键权威：嵌套 object 表示键组，JSON `null` 表示词条。各 `{culture}.json` 只保存扁平的 `full.key` → 字符串译文，不再重复嵌套结构。公共结构由 `RootGroup` 暴露，节点类型使用 `Group` 和 `Entry`；新增节点分别调用 `AddGroup(...)` 与 `AddEntry(...)`。结构变更只改 `keys.json`，并同步各 Locale 值表中的键；缺省译文在读取时视为空字符串。
+`keys.json` 是键权威：嵌套 object 表示键组，JSON `null` 表示词条。各 `{culture}.json` 只保存扁平的 `full.key` → 字符串译文，不再重复嵌套结构。公共结构由 `RootKeyGroup` 暴露，节点类型使用 `Group` 和 `Entry`；新增节点分别调用 `AddGroup(...)` 与 `AddEntry(...)`。结构变更只改 `keys.json`，并同步各 Locale 值表中的键；缺省译文在读取时视为空字符串。
 
 空字符串表示尚未完成翻译。普通保存允许空字符串。`tools/Xoderony.Localization.Editor` 是用于打开、编辑和保存语言表目录的 WPF 程序；它显示树的可见节点列表、动态 Locale 列和每种语言的空值统计，并可调用 `StringTableKeyGenerator` 为当前语言表生成强类型 C# 键，不需要打开 Unity。
 

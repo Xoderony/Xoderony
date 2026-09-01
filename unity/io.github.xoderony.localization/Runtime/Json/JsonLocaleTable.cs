@@ -8,7 +8,7 @@ using System.Text.Json.Nodes;
 
 namespace Xoderony.Localization.Json;
 
-internal sealed class JsonStringTable {
+internal sealed class JsonLocaleTable {
 
     private readonly CultureInfo _culture;
     private readonly string _filePath;
@@ -16,13 +16,13 @@ internal sealed class JsonStringTable {
 
     public CultureInfo Culture => _culture;
     public IEnumerable<KeyValuePair<string, string>> KeyToTranslation => _keyToTranslation;
-    public IEnumerable<string> Keys => _keyToTranslation.Keys;
+    public IEnumerable<string> TranslationKeys => _keyToTranslation.Keys;
 
     /// <summary>直接持有传入的 culture 与 keyToTranslation，不解析 culture，也不复制字典。</summary>
-    public JsonStringTable(CultureInfo culture, string filePath, SortedDictionary<string, string> keyToTranslation) {
+    public JsonLocaleTable(CultureInfo culture, string filePath, SortedDictionary<string, string> keyToTranslation) {
         Debug.Assert(culture is not null);
         if (culture.Equals(CultureInfo.InvariantCulture)) {
-            throw new ArgumentException("The table culture cannot be invariant.", nameof(culture));
+            throw new ArgumentException("The locale table culture cannot be invariant.", nameof(culture));
         }
 
         Debug.Assert(!string.IsNullOrWhiteSpace(filePath));
@@ -32,14 +32,14 @@ internal sealed class JsonStringTable {
         _keyToTranslation = keyToTranslation;
     }
 
-    public static JsonStringTable Load(CultureInfo culture, string filePath) {
+    public static JsonLocaleTable Load(CultureInfo culture, string filePath) {
         Debug.Assert(culture is not null);
         Debug.Assert(!string.IsNullOrWhiteSpace(filePath));
         culture = CultureInfo.GetCultureInfo(culture.Name);
 
         var root = JsonObjectFile.Read(filePath);
         var keyToTranslation = ParseTranslations(root, filePath);
-        return new JsonStringTable(culture, filePath, keyToTranslation);
+        return new JsonLocaleTable(culture, filePath, keyToTranslation);
 
         static SortedDictionary<string, string> ParseTranslations(JsonObject root, string path) {
             var keyToTranslation = new SortedDictionary<string, string>(StringComparer.Ordinal);
@@ -57,23 +57,23 @@ internal sealed class JsonStringTable {
         }
     }
 
-    public bool TryGetValue(string key, [NotNullWhen(true)] out string? value) {
+    public bool TryGetTranslation(string key, [NotNullWhen(true)] out string? translation) {
         Debug.Assert(key is not null);
-        return _keyToTranslation.TryGetValue(key, out value);
+        return _keyToTranslation.TryGetValue(key, out translation);
     }
 
-    public bool SetValue(string key, string value) {
+    public bool SetTranslation(string key, string translation) {
         Debug.Assert(key is not null);
-        Debug.Assert(value is not null);
-        if (_keyToTranslation.TryGetValue(key, out var current) && string.Equals(current, value, StringComparison.Ordinal)) {
+        Debug.Assert(translation is not null);
+        if (_keyToTranslation.TryGetValue(key, out var current) && string.Equals(current, translation, StringComparison.Ordinal)) {
             return false;
         }
 
-        _keyToTranslation[key] = value;
+        _keyToTranslation[key] = translation;
         return true;
     }
 
-    public bool RemoveValue(string key, [NotNullWhen(true)] out string? translation) {
+    public bool RemoveTranslation(string key, [NotNullWhen(true)] out string? translation) {
         Debug.Assert(key is not null);
         return _keyToTranslation.Remove(key, out translation);
     }

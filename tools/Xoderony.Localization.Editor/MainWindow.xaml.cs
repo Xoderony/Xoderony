@@ -23,7 +23,7 @@ public partial class MainWindow : Window {
     private readonly Dictionary<string, DataGridColumn> _cultureNameToColumn = new(StringComparer.OrdinalIgnoreCase);
     private readonly EditorLocalizer _localizer;
     private readonly EditorSettings _settings;
-    private JsonStringTableCollection? _tables;
+    private JsonLocaleTableCollection? _tables;
     private string _currentGroupKey = string.Empty;
     private string? _directoryPath;
     private DataGridColumn? _nameColumn;
@@ -50,6 +50,18 @@ public partial class MainWindow : Window {
         }
     }
 
+    private void OnClosing(object? sender, CancelEventArgs e) {
+        if (!ConfirmDiscardChanges()) {
+            e.Cancel = true;
+            return;
+        }
+
+        var restoreBounds = RestoreBounds;
+        _settings.WindowWidth = restoreBounds.Width;
+        _settings.WindowHeight = restoreBounds.Height;
+        SaveSettings();
+    }
+
     private void OpenDirectory(object sender, RoutedEventArgs e) {
         if (!ConfirmDiscardChanges()) {
             return;
@@ -65,7 +77,7 @@ public partial class MainWindow : Window {
 
     private bool TryOpenDirectory(string directoryPath, bool rememberDirectory) {
         try {
-            var tables = JsonStringTableCollection.LoadDirectory(directoryPath);
+            var tables = JsonLocaleTableCollection.LoadDirectory(directoryPath);
             _tables = tables;
             _directoryPath = directoryPath;
             _currentGroupKey = string.Empty;
@@ -125,7 +137,7 @@ public partial class MainWindow : Window {
 
         string source;
         try {
-            source = StringTableKeyGenerator.Generate(_tables.GetKeys(), namespaceName, typeName);
+            source = StringTableKeyGenerator.Generate(_tables.GetEntryKeys(), namespaceName, typeName);
         } catch (ArgumentException exception) {
             ShowError(exception.Message);
             return;
@@ -150,17 +162,50 @@ public partial class MainWindow : Window {
         }
     }
 
-    private void SearchChanged(object sender, TextChangedEventArgs e) {
-        if (!IsInitialized) {
-            return;
+    private bool ConfirmDiscardChanges() {
+        if (_tables is null || !_tables.IsDirty) {
+            return true;
         }
 
-        RefreshRows(previousState: new GridState(null, null, 0, 0));
+        var result = MessageBox.Show(
+            this,
+            _localizer[EditorStringKeys.Dialog.UnsavedMessage],
+            _localizer[EditorStringKeys.Dialog.UnsavedTitle],
+            MessageBoxButton.YesNoCancel,
+            MessageBoxImage.Warning
+        );
+        if (result == MessageBoxResult.Cancel) {
+            return false;
+        }
+
+        if (result == MessageBoxResult.Yes) {
+            Save(this, new RoutedEventArgs());
+            return !_tables.IsDirty;
+        }
+
+        return true;
     }
 
-    private void ClearSearch(object sender, RoutedEventArgs e) {
-        SearchTextBox.Clear();
-        SearchTextBox.Focus();
+    private void SaveSettings() {
+        try {
+            _settings.Save();
+        } catch (Exception exception) when (exception is IOException or UnauthorizedAccessException) {
+            ShowError(exception.Message);
+        }
+    }
+
+    private void RestoreWindowSize() {
+        var workArea = SystemParameters.WorkArea;
+        var maxWidth = Math.Max(MinWidth, workArea.Width);
+        var maxHeight = Math.Max(MinHeight, workArea.Height);
+
+        if (_settings.WindowWidth is double width && double.IsFinite(width)) {
+            Width = Math.Clamp(width, MinWidth, maxWidth);
+        }
+
+        if (_settings.WindowHeight is double height && double.IsFinite(height)) {
+            Height = Math.Clamp(height, MinHeight, maxHeight);
+        }
     }
 
     private void LanguageChanged(object sender, SelectionChangedEventArgs e) {
@@ -181,20 +226,98 @@ public partial class MainWindow : Window {
         SaveSettings();
     }
 
-    private void SaveSettings() {
-        try {
-            _settings.Save();
-        } catch (Exception exception) when (exception is IOException or UnauthorizedAccessException) {
-            ShowError(exception.Message);
-        }
-    }
-
     private void NavigateBack() {
         if (_currentGroupKey.Length == 0) {
             return;
         }
 
-        NavigateToGroup(JsonStringTableNode.GetParentKey(_currentGroupKey));
+        NavigateToGroup(JsonKeyNode.GetParentKey(_currentGroupKey));
+    }
+
+    private void NavigateToGroup(string groupKey) {
+        _currentGroupKey = groupKey;
+        RefreshBreadcrumb();
+        if (SearchTextBox.Text.Length > 0) {
+            SearchTextBox.Clear();
+        } else {
+            RefreshRows(previousState: new GridState(null, null, 0, 0));
+        }
+    }
+
+    private void NavigateBreadcrumb(object sender, RoutedEventArgs e) {
+        if (sender is Button { Tag: string groupKey }) {
+            NavigateToGroup(groupKey);
+        }
+    }
+
+    private void RefreshBreadcrumb() {
+        BreadcrumbPanel.Children.Clear();
+        var directoryPath = _directoryPath;
+        if (directoryPath is null) {
+            PathPlaceholderText.Visibility = Visibility.Visible;
+            BreadcrumbScrollViewer.Visibility = Visibility.Collapsed;
+            return;
+        }
+
+        PathPlaceholderText.Visibility = Visibility.Collapsed;
+        BreadcrumbScrollViewer.Visibility = Visibility.Visible;
+        var directoryName = Path.GetFileName(Path.TrimEndingDirectorySeparator(directoryPath));
+        AddBreadcrumb(directoryName.Length == 0 ? directoryPath : directoryName, string.Empty, directoryPath, isRoot: true);
+
+        var key = string.Empty;
+        foreach (var localKey in _currentGroupKey.Split('.', StringSplitOptions.RemoveEmptyEntries)) {
+            key = JsonKeyNode.CombineKey(key, localKey);
+            AddBreadcrumb(localKey, key, key);
+        }
+    }
+
+    private void AddBreadcrumb(string label, string groupKey, string toolTip, bool isRoot = false) {
+        if (!isRoot) {
+            BreadcrumbPanel.Children.Add(new TextBlock {
+                Text = "\u203A",
+                Style = (Style)FindResource("BreadcrumbSeparatorTextStyle")
+            });
+        }
+
+        var button = new Button {
+            Content = label,
+            Tag = groupKey,
+            ToolTip = toolTip,
+            Style = (Style)FindResource("BreadcrumbButtonStyle")
+        };
+        button.Click += NavigateBreadcrumb;
+        BreadcrumbPanel.Children.Add(button);
+    }
+
+    private void SearchChanged(object sender, TextChangedEventArgs e) {
+        if (!IsInitialized) {
+            return;
+        }
+
+        RefreshRows(previousState: new GridState(null, null, 0, 0));
+    }
+
+    private void ClearSearch(object sender, RoutedEventArgs e) {
+        SearchTextBox.Clear();
+        SearchTextBox.Focus();
+    }
+
+    private void SelectionChanged(object sender, SelectionChangedEventArgs e) {
+        UpdateCommandState();
+    }
+
+    private void SelectRowOnRightClick(object sender, MouseButtonEventArgs e) {
+        var row = FindVisualParent<DataGridRow>(e.OriginalSource as DependencyObject);
+        if (row is not null) {
+            if (!row.IsSelected) {
+                TableGrid.SelectedItem = row.Item;
+            }
+
+            var cell = FindVisualParent<DataGridCell>(e.OriginalSource as DependencyObject);
+            if (cell is not null) {
+                TableGrid.CurrentCell = new DataGridCellInfo(row.Item, cell.Column);
+            }
+        }
     }
 
     private void HandleCellDoubleClick(object sender, MouseButtonEventArgs e) {
@@ -222,34 +345,6 @@ public partial class MainWindow : Window {
         e.Handled = true;
     }
 
-    private void NavigateToGroup(string groupKey) {
-        _currentGroupKey = groupKey;
-        RefreshBreadcrumb();
-        if (SearchTextBox.Text.Length > 0) {
-            SearchTextBox.Clear();
-        } else {
-            RefreshRows(previousState: new GridState(null, null, 0, 0));
-        }
-    }
-
-    private void SelectionChanged(object sender, SelectionChangedEventArgs e) {
-        UpdateCommandState();
-    }
-
-    private void SelectRowOnRightClick(object sender, MouseButtonEventArgs e) {
-        var row = FindVisualParent<DataGridRow>(e.OriginalSource as DependencyObject);
-        if (row is not null) {
-            if (!row.IsSelected) {
-                TableGrid.SelectedItem = row.Item;
-            }
-
-            var cell = FindVisualParent<DataGridCell>(e.OriginalSource as DependencyObject);
-            if (cell is not null) {
-                TableGrid.CurrentCell = new DataGridCellInfo(row.Item, cell.Column);
-            }
-        }
-    }
-
     private void OnPreviewKeyDown(object sender, KeyEventArgs e) {
         if ((Keyboard.Modifiers & ModifierKeys.Control) != 0) {
             if (e.Key == Key.O) {
@@ -266,13 +361,19 @@ public partial class MainWindow : Window {
 
             if (Keyboard.FocusedElement is not TextBox) {
                 if (e.Key == Key.C) {
-                    CopySelection(this, new RoutedEventArgs());
+                    ClipboardCopy(this, new RoutedEventArgs());
+                    e.Handled = true;
+                    return;
+                }
+
+                if (e.Key == Key.X) {
+                    ClipboardCut(this, new RoutedEventArgs());
                     e.Handled = true;
                     return;
                 }
 
                 if (e.Key == Key.V) {
-                    PasteClipboard(this, new RoutedEventArgs());
+                    ClipboardPaste(this, new RoutedEventArgs());
                     e.Handled = true;
                     return;
                 }
@@ -316,8 +417,8 @@ public partial class MainWindow : Window {
             return;
         }
 
-        var key = JsonStringTableNode.CombineKey(_currentGroupKey, localKey);
-        ChangeStructure(tables => tables.AddGroup(_currentGroupKey, localKey), key);
+        var key = JsonKeyNode.CombineKey(_currentGroupKey, localKey);
+        ChangeStructure(tables => tables.AddGroup(_currentGroupKey, localKey), () => key);
     }
 
     private void AddEntry(object sender, RoutedEventArgs e) {
@@ -330,8 +431,8 @@ public partial class MainWindow : Window {
             return;
         }
 
-        var key = JsonStringTableNode.CombineKey(_currentGroupKey, localKey);
-        ChangeStructure(tables => tables.AddEntry(_currentGroupKey, localKey), key);
+        var key = JsonKeyNode.CombineKey(_currentGroupKey, localKey);
+        ChangeStructure(tables => tables.AddEntry(_currentGroupKey, localKey), () => key);
     }
 
     private void AddLocale(object sender, RoutedEventArgs e) {
@@ -364,25 +465,40 @@ public partial class MainWindow : Window {
             return;
         }
 
-        var newKey = JsonStringTableNode.CombineKey(JsonStringTableNode.GetParentKey(oldKey), localKey);
-        ChangeStructure(tables => tables.Rename(oldKey, localKey), newKey);
+        var newKey = JsonKeyNode.CombineKey(JsonKeyNode.GetParentKey(oldKey), localKey);
+        ChangeStructure(tables => tables.Rename(oldKey, localKey), () => newKey);
     }
 
-    private void CopySelection(object sender, RoutedEventArgs e) {
+    private void ClipboardCopy(object sender, RoutedEventArgs e) {
         if (_tables is null || !TryGetSelectedNode(out var node)) {
             return;
         }
 
         try {
             LocalizationClipboard.Set(_tables, node);
-            StatusText.Text = _localizer[EditorStringKeys.Status.Copied, node.FullKey];
             UpdateCommandState();
         } catch (ExternalException exception) {
             ShowError(exception.Message);
         }
     }
 
-    private void PasteClipboard(object sender, RoutedEventArgs e) {
+    private void ClipboardCut(object sender, RoutedEventArgs e) {
+        if (_tables is null || !TryGetSelectedNode(out var node)) {
+            return;
+        }
+
+        try {
+            LocalizationClipboard.Set(_tables, node);
+        } catch (ExternalException exception) {
+            ShowError(exception.Message);
+            return;
+        }
+
+        var key = node.FullKey;
+        ChangeStructure(tables => tables.Remove(key));
+    }
+
+    private void ClipboardPaste(object sender, RoutedEventArgs e) {
         if (_tables is null) {
             return;
         }
@@ -393,12 +509,35 @@ public partial class MainWindow : Window {
                 return;
             }
 
-            var targetLocalKey = GetAvailableCopyLocalKey(payload.LocalKey);
-            var targetKey = JsonStringTableNode.CombineKey(_currentGroupKey, targetLocalKey);
-            ChangeStructure(tables => LocalizationClipboard.Paste(tables, _currentGroupKey, targetLocalKey, payload), targetKey);
+            var targetLocalKey = GetCurrentGroup().AllocateLocalKey(payload.LocalKey);
+            var targetKey = JsonKeyNode.CombineKey(_currentGroupKey, targetLocalKey);
+            ChangeStructure(tables => LocalizationClipboard.Paste(tables, _currentGroupKey, targetLocalKey, payload), () => targetKey);
         } catch (ExternalException exception) {
             ShowError(exception.Message);
         }
+    }
+
+    private void CopyToSelection(object sender, RoutedEventArgs e) {
+        if (_tables is null || !TryGetSelectedNode(out var node)) {
+            return;
+        }
+
+        var dialog = new MoveDestinationDialog(
+            _tables.RootKeyGroup,
+            node,
+            _localizer[EditorStringKeys.Dialog.MoveRoot],
+            _localizer[EditorStringKeys.Dialog.CopyTitle],
+            _localizer[EditorStringKeys.Dialog.CopyMessage, node.FullKey],
+            _localizer[EditorStringKeys.Dialog.CopyConfirm],
+            _localizer[EditorStringKeys.Dialog.Cancel],
+            sameParentMessage: null
+        ) { Owner = this };
+        if (dialog.ShowDialog() != true) {
+            return;
+        }
+
+        string? copiedKey = null;
+        ChangeStructure(tables => copiedKey = tables.Copy(node.FullKey, dialog.SelectedGroupKey), () => copiedKey);
     }
 
     private void MoveSelection(object sender, RoutedEventArgs e) {
@@ -407,22 +546,21 @@ public partial class MainWindow : Window {
         }
 
         var dialog = new MoveDestinationDialog(
-            _tables.RootGroup,
+            _tables.RootKeyGroup,
             node,
             _localizer[EditorStringKeys.Dialog.MoveRoot],
             _localizer[EditorStringKeys.Dialog.MoveTitle],
             _localizer[EditorStringKeys.Dialog.MoveMessage, node.FullKey],
             _localizer[EditorStringKeys.Dialog.MoveConfirm],
             _localizer[EditorStringKeys.Dialog.Cancel],
-            _localizer[EditorStringKeys.Dialog.MoveSameParent],
-            _localizer[EditorStringKeys.Dialog.MoveConflict, node.LocalKey]
+            _localizer[EditorStringKeys.Dialog.MoveSameParent]
         ) { Owner = this };
         if (dialog.ShowDialog() != true) {
             return;
         }
 
-        var movedKey = JsonStringTableNode.CombineKey(dialog.SelectedGroupKey, node.LocalKey);
-        ChangeStructure(tables => tables.Move(node.FullKey, dialog.SelectedGroupKey), movedKey);
+        string? movedKey = null;
+        ChangeStructure(tables => movedKey = tables.Move(node.FullKey, dialog.SelectedGroupKey), () => movedKey);
     }
 
     private void Remove(object sender, RoutedEventArgs e) {
@@ -445,7 +583,7 @@ public partial class MainWindow : Window {
         ChangeStructure(tables => tables.Remove(key));
     }
 
-    private bool TryGetSelectedNode([NotNullWhen(true)] out JsonStringTableNode? node) {
+    private bool TryGetSelectedNode([NotNullWhen(true)] out JsonKeyNode? node) {
         if (TableGrid.SelectedItem is LocalizationRow row) {
             node = row.Node;
             return true;
@@ -455,7 +593,7 @@ public partial class MainWindow : Window {
         return false;
     }
 
-    private bool ChangeStructure(Action<JsonStringTableCollection> change, string? selectedKey = null, bool rebuildColumns = false) {
+    private bool ChangeStructure(Action<JsonLocaleTableCollection> change, Func<string?>? getSelectedKey = null, bool rebuildColumns = false) {
         if (_tables is null) {
             return false;
         }
@@ -467,7 +605,7 @@ public partial class MainWindow : Window {
                 RebuildColumns();
             }
 
-            RefreshRows(selectedKey ?? state.SelectedKey, state);
+            RefreshRows(getSelectedKey?.Invoke() ?? state.SelectedKey, state);
             return true;
         } catch (ArgumentException exception) {
             ShowError(exception.Message);
@@ -488,7 +626,7 @@ public partial class MainWindow : Window {
 
         _nameColumn = CreateNameColumn();
         TableGrid.Columns.Add(_nameColumn);
-        foreach (var culture in _tables.Cultures) {
+        foreach (var culture in _tables.GetCultures()) {
             var column = CreateValueColumn(culture);
             _cultureNameToColumn.Add(culture.Name, column);
             TableGrid.Columns.Add(column);
@@ -529,7 +667,7 @@ public partial class MainWindow : Window {
         UpdateStatus();
     }
 
-    private void AddSearchRows(List<LocalizationRow> rows, JsonStringTableGroup group, string searchText) {
+    private void AddSearchRows(List<LocalizationRow> rows, JsonKeyGroup group, string searchText) {
         Debug.Assert(_tables is not null);
         foreach (var child in group.LocalKeyToChild.Values) {
             if (MatchesSearch(_tables, child, searchText)) {
@@ -537,17 +675,17 @@ public partial class MainWindow : Window {
                 AddRow(rows, child, relativeKey.Replace(".", " / "));
             }
 
-            if (child is JsonStringTableGroup childGroup) {
+            if (child is JsonKeyGroup childGroup) {
                 AddSearchRows(rows, childGroup, searchText);
             }
         }
     }
 
-    private void AddRow(List<LocalizationRow> rows, JsonStringTableNode node, string displayName) {
+    private void AddRow(List<LocalizationRow> rows, JsonKeyNode node, string displayName) {
         Debug.Assert(_tables is not null);
         var row = new LocalizationRow(node, displayName);
-        foreach (var culture in _tables.Cultures) {
-            var value = node is JsonStringTableEntry ? _tables.GetValue(culture, node.FullKey) : string.Empty;
+        foreach (var culture in _tables.GetCultures()) {
+            var value = node is JsonKeyEntry ? _tables.GetTranslation(culture, node.FullKey) : string.Empty;
             row.CultureNameToTranslation.Add(culture.Name, value);
         }
 
@@ -575,19 +713,19 @@ public partial class MainWindow : Window {
         };
     }
 
-    private JsonStringTableGroup GetCurrentGroup() {
+    private JsonKeyGroup GetCurrentGroup() {
         Debug.Assert(_tables is not null);
-        return _tables.RootGroup.GetGroup(_currentGroupKey);
+        return _tables.RootKeyGroup.GetGroup(_currentGroupKey);
     }
 
-    private static bool MatchesSearch(JsonStringTableCollection tables, JsonStringTableNode node, string searchText) {
+    private static bool MatchesSearch(JsonLocaleTableCollection tables, JsonKeyNode node, string searchText) {
         if (searchText.Length == 0 || node.FullKey.Contains(searchText, StringComparison.OrdinalIgnoreCase)) {
             return true;
         }
 
-        if (node is JsonStringTableEntry) {
-            foreach (var culture in tables.Cultures) {
-                if (tables.GetValue(culture, node.FullKey).Contains(searchText, StringComparison.OrdinalIgnoreCase)) {
+        if (node is JsonKeyEntry) {
+            foreach (var culture in tables.GetCultures()) {
+                if (tables.GetTranslation(culture, node.FullKey).Contains(searchText, StringComparison.OrdinalIgnoreCase)) {
                     return true;
                 }
             }
@@ -596,199 +734,59 @@ public partial class MainWindow : Window {
         return false;
     }
 
-    private bool ConfirmDiscardChanges() {
-        if (_tables is null || !_tables.IsDirty) {
-            return true;
-        }
-
-        var result = MessageBox.Show(
-            this,
-            _localizer[EditorStringKeys.Dialog.UnsavedMessage],
-            _localizer[EditorStringKeys.Dialog.UnsavedTitle],
-            MessageBoxButton.YesNoCancel,
-            MessageBoxImage.Warning
-        );
-        if (result == MessageBoxResult.Cancel) {
-            return false;
-        }
-
-        if (result == MessageBoxResult.Yes) {
-            Save(this, new RoutedEventArgs());
-            return !_tables.IsDirty;
-        }
-
-        return true;
-    }
-
-    private void OnClosing(object? sender, CancelEventArgs e) {
-        if (!ConfirmDiscardChanges()) {
-            e.Cancel = true;
-            return;
-        }
-
-        var restoreBounds = RestoreBounds;
-        _settings.WindowWidth = restoreBounds.Width;
-        _settings.WindowHeight = restoreBounds.Height;
-        SaveSettings();
-    }
-
-    private void RestoreWindowSize() {
-        var workArea = SystemParameters.WorkArea;
-        var maxWidth = Math.Max(MinWidth, workArea.Width);
-        var maxHeight = Math.Max(MinHeight, workArea.Height);
-
-        if (_settings.WindowWidth is double width && double.IsFinite(width)) {
-            Width = Math.Clamp(width, MinWidth, maxWidth);
-        }
-
-        if (_settings.WindowHeight is double height && double.IsFinite(height)) {
-            Height = Math.Clamp(height, MinHeight, maxHeight);
-        }
-    }
-
-    private void UpdateStatus() {
-        if (_tables is null) {
-            Title = _localizer[EditorStringKeys.Window.Title];
-            SummaryText.Text = string.Empty;
-            StatusText.Text = _localizer[EditorStringKeys.Status.Unopened];
-            EmptyState.Visibility = Visibility.Visible;
-            TableGrid.Visibility = Visibility.Collapsed;
-            UpdateCommandState();
-            return;
-        }
-
-        var keyCount = 0;
-        foreach (var _ in _tables.GetKeys()) {
-            keyCount++;
-        }
-
-        var emptyCount = 0;
-        foreach (var culture in _tables.Cultures) {
-            emptyCount += _tables.GetEmptyValueCount(culture);
-        }
-
-        var dirtyMarker = _tables.IsDirty ? " *" : string.Empty;
-        Title = _localizer[EditorStringKeys.Window.TitleWithDirectory, Path.GetFileName(_directoryPath), dirtyMarker];
-        SummaryText.Text = _localizer[EditorStringKeys.Status.Summary, _tables.Cultures.Count, keyCount, emptyCount];
-        StatusText.Text = _tables.IsDirty ? _localizer[EditorStringKeys.Status.Unsaved] : _localizer[EditorStringKeys.Status.Saved];
-        EmptyState.Visibility = Visibility.Collapsed;
-        TableGrid.Visibility = Visibility.Visible;
-        UpdateCommandState();
-    }
-
-    private void UpdateCommandState() {
-        var tables = _tables;
-        var hasTables = tables is not null;
-        var hasLocales = tables is not null && tables.Cultures.Count > 0;
-        var hasSelection = TableGrid.SelectedItem is LocalizationRow;
-        var canPaste = hasLocales && LocalizationClipboard.ContainsData();
-        SaveButton.IsEnabled = tables is not null && tables.IsDirty;
-        GenerateKeysButton.IsEnabled = hasLocales;
-        AddGroupButton.IsEnabled = hasLocales;
-        AddEntryButton.IsEnabled = hasLocales;
-        AddLocaleButton.IsEnabled = hasTables;
-        RenameButton.IsEnabled = hasSelection;
-        MoveButton.IsEnabled = hasSelection;
-        CopyButton.IsEnabled = hasSelection;
-        PasteButton.IsEnabled = canPaste;
-        RenameMenuItem.IsEnabled = hasSelection;
-        MoveMenuItem.IsEnabled = hasSelection;
-        CopyMenuItem.IsEnabled = hasSelection;
-        PasteMenuItem.IsEnabled = canPaste;
-        RemoveButton.IsEnabled = hasSelection;
-        SearchTextBox.IsEnabled = hasTables;
-    }
-
-    private void UpdateLocalizedText() {
-        _nameColumn?.Header = _localizer[EditorStringKeys.Grid.Name];
-
-        UpdateStatus();
-    }
-
-    private void RefreshBreadcrumb() {
-        BreadcrumbPanel.Children.Clear();
-        var directoryPath = _directoryPath;
-        if (directoryPath is null) {
-            PathPlaceholderText.Visibility = Visibility.Visible;
-            BreadcrumbScrollViewer.Visibility = Visibility.Collapsed;
-            return;
-        }
-
-        PathPlaceholderText.Visibility = Visibility.Collapsed;
-        BreadcrumbScrollViewer.Visibility = Visibility.Visible;
-        var directoryName = Path.GetFileName(Path.TrimEndingDirectorySeparator(directoryPath));
-        AddBreadcrumb(directoryName.Length == 0 ? directoryPath : directoryName, string.Empty, directoryPath, isRoot: true);
-
-        var key = string.Empty;
-        foreach (var localKey in _currentGroupKey.Split('.', StringSplitOptions.RemoveEmptyEntries)) {
-            key = JsonStringTableNode.CombineKey(key, localKey);
-            AddBreadcrumb(localKey, key, key);
-        }
-    }
-
-    private void AddBreadcrumb(string label, string groupKey, string toolTip, bool isRoot = false) {
-        if (!isRoot) {
-            BreadcrumbPanel.Children.Add(new TextBlock {
-                Text = "\u203A",
-                Style = (Style)FindResource("BreadcrumbSeparatorTextStyle")
-            });
-        }
-
-        var button = new Button {
-            Content = label,
-            Tag = groupKey,
-            ToolTip = toolTip,
-            Style = (Style)FindResource("BreadcrumbButtonStyle")
-        };
-        button.Click += NavigateBreadcrumb;
-        BreadcrumbPanel.Children.Add(button);
-    }
-
-    private void NavigateBreadcrumb(object sender, RoutedEventArgs e) {
-        if (sender is Button { Tag: string groupKey }) {
-            NavigateToGroup(groupKey);
-        }
-    }
-
-    private string? Prompt(string title, string message, string initialValue = "") {
-        var dialog = new Window {
-            Title = title,
-            Owner = this,
-            Width = 420,
-            Height = 160,
-            WindowStartupLocation = WindowStartupLocation.CenterOwner,
-            ResizeMode = ResizeMode.NoResize
-        };
-        var panel = new StackPanel { Margin = new Thickness(16) };
-        panel.Children.Add(new TextBlock { Text = message });
-        var textBox = new TextBox { Text = initialValue, Margin = new Thickness(0, 8, 0, 12) };
-        panel.Children.Add(textBox);
-        var buttons = new StackPanel { Orientation = Orientation.Horizontal, HorizontalAlignment = HorizontalAlignment.Right };
-        var confirmed = false;
-        var confirm = new Button { Content = _localizer[EditorStringKeys.Dialog.Confirm], IsDefault = true, MinWidth = 72, Margin = new Thickness(0, 0, 8, 0) };
-        confirm.Click += (_, _) => { confirmed = true; dialog.Close(); };
-        var cancel = new Button { Content = _localizer[EditorStringKeys.Dialog.Cancel], IsCancel = true, MinWidth = 72 };
-        buttons.Children.Add(confirm);
-        buttons.Children.Add(cancel);
-        panel.Children.Add(buttons);
-        dialog.Content = panel;
-        dialog.Loaded += (_, _) => { textBox.Focus(); textBox.SelectAll(); };
-        dialog.ShowDialog();
-        return confirmed ? textBox.Text : null;
-    }
-
     private CultureInfo? GetColumnCulture(DataGridColumn column) {
         if (_tables is null) {
             return null;
         }
 
-        foreach (var culture in _tables.Cultures) {
+        foreach (var culture in _tables.GetCultures()) {
             if (_cultureNameToColumn.TryGetValue(culture.Name, out var cultureColumn) && ReferenceEquals(cultureColumn, column)) {
                 return culture;
             }
         }
 
         return null;
+    }
+
+    private GridState CaptureGridState() {
+        var selectedKey = (TableGrid.SelectedItem as LocalizationRow)?.Node.FullKey;
+        string? currentColumnKey = null;
+        if (TableGrid.CurrentColumn is not null) {
+            currentColumnKey = string.Empty;
+            foreach (var pair in _cultureNameToColumn) {
+                if (ReferenceEquals(pair.Value, TableGrid.CurrentColumn)) {
+                    currentColumnKey = pair.Key;
+                    break;
+                }
+            }
+        }
+
+        var scrollViewer = FindVisualChild<ScrollViewer>(TableGrid);
+        return new GridState(selectedKey, currentColumnKey, scrollViewer?.HorizontalOffset ?? 0, scrollViewer?.VerticalOffset ?? 0);
+    }
+
+    private void RestoreGridState(GridState state) {
+        if (TableGrid.SelectedItem is LocalizationRow row && state.CurrentColumnKey is not null) {
+            DataGridColumn? column;
+            if (state.CurrentColumnKey.Length == 0) {
+                column = TableGrid.Columns.Count > 0 ? TableGrid.Columns[0] : null;
+            } else {
+                _cultureNameToColumn.TryGetValue(state.CurrentColumnKey, out column);
+            }
+
+            if (column is not null) {
+                TableGrid.CurrentCell = new DataGridCellInfo(row, column);
+            }
+        }
+
+        var scrollViewer = FindVisualChild<ScrollViewer>(TableGrid);
+        if (scrollViewer is null) {
+            return;
+        }
+
+        TableGrid.UpdateLayout();
+        scrollViewer.ScrollToHorizontalOffset(state.HorizontalOffset);
+        scrollViewer.ScrollToVerticalOffset(state.VerticalOffset);
     }
 
     private void EditTranslation(LocalizationRow row, CultureInfo culture) {
@@ -881,14 +879,110 @@ public partial class MainWindow : Window {
             return;
         }
 
-        _tables.SetValue(culture, row.Node.FullKey, textBox.Text);
+        _tables.SetTranslation(culture, row.Node.FullKey, textBox.Text);
         row.CultureNameToTranslation[culture.Name] = textBox.Text;
         TableGrid.Items.Refresh();
         UpdateStatus();
     }
 
+    private string? Prompt(string title, string message, string initialValue = "") {
+        var dialog = new Window {
+            Title = title,
+            Owner = this,
+            Width = 420,
+            Height = 160,
+            WindowStartupLocation = WindowStartupLocation.CenterOwner,
+            ResizeMode = ResizeMode.NoResize
+        };
+        var panel = new StackPanel { Margin = new Thickness(16) };
+        panel.Children.Add(new TextBlock { Text = message });
+        var textBox = new TextBox { Text = initialValue, Margin = new Thickness(0, 8, 0, 12) };
+        panel.Children.Add(textBox);
+        var buttons = new StackPanel { Orientation = Orientation.Horizontal, HorizontalAlignment = HorizontalAlignment.Right };
+        var confirmed = false;
+        var confirm = new Button { Content = _localizer[EditorStringKeys.Dialog.Confirm], IsDefault = true, MinWidth = 72, Margin = new Thickness(0, 0, 8, 0) };
+        confirm.Click += (_, _) => { confirmed = true; dialog.Close(); };
+        var cancel = new Button { Content = _localizer[EditorStringKeys.Dialog.Cancel], IsCancel = true, MinWidth = 72 };
+        buttons.Children.Add(confirm);
+        buttons.Children.Add(cancel);
+        panel.Children.Add(buttons);
+        dialog.Content = panel;
+        dialog.Loaded += (_, _) => { textBox.Focus(); textBox.SelectAll(); };
+        dialog.ShowDialog();
+        return confirmed ? textBox.Text : null;
+    }
+
     private void ShowError(string message) {
         MessageBox.Show(this, message, _localizer[EditorStringKeys.Dialog.ErrorTitle], MessageBoxButton.OK, MessageBoxImage.Error);
+    }
+
+    private void UpdateStatus() {
+        if (_tables is null) {
+            Title = _localizer[EditorStringKeys.Window.Title];
+            SummaryText.Text = string.Empty;
+            StatusText.Text = _localizer[EditorStringKeys.Status.Unopened];
+            EmptyState.Visibility = Visibility.Visible;
+            TableGrid.Visibility = Visibility.Collapsed;
+            UpdateCommandState();
+            return;
+        }
+
+        var keyCount = 0;
+        foreach (var _ in _tables.GetEntryKeys()) {
+            keyCount++;
+        }
+
+        var emptyCount = 0;
+        CultureInfo? placeholderReferenceCulture = null;
+        foreach (var culture in _tables.GetCultures()) {
+            placeholderReferenceCulture ??= culture;
+        }
+
+        if (placeholderReferenceCulture is not null) {
+            foreach (var issue in JsonLocalizationValidation.Validate(_tables, placeholderReferenceCulture)) {
+                if (issue.Kind == JsonLocalizationIssueKind.MissingTranslation) {
+                    emptyCount++;
+                }
+            }
+        }
+
+        var dirtyMarker = _tables.IsDirty ? " *" : string.Empty;
+        Title = _localizer[EditorStringKeys.Window.TitleWithDirectory, Path.GetFileName(_directoryPath), dirtyMarker];
+        SummaryText.Text = _localizer[EditorStringKeys.Status.Summary, _tables.CultureCount, keyCount, emptyCount];
+        StatusText.Text = _tables.IsDirty ? _localizer[EditorStringKeys.Status.Unsaved] : _localizer[EditorStringKeys.Status.Saved];
+        EmptyState.Visibility = Visibility.Collapsed;
+        TableGrid.Visibility = Visibility.Visible;
+        UpdateCommandState();
+    }
+
+    private void UpdateCommandState() {
+        var tables = _tables;
+        var hasTables = tables is not null;
+        var hasLocales = tables is not null && tables.CultureCount > 0;
+        var hasSelection = TableGrid.SelectedItem is LocalizationRow;
+        var canPaste = hasLocales && LocalizationClipboard.ContainsData();
+        SaveButton.IsEnabled = tables is not null && tables.IsDirty;
+        GenerateKeysButton.IsEnabled = hasLocales;
+        AddGroupButton.IsEnabled = hasLocales;
+        AddEntryButton.IsEnabled = hasLocales;
+        AddLocaleButton.IsEnabled = hasTables;
+        RenameButton.IsEnabled = hasSelection;
+        MoveButton.IsEnabled = hasSelection;
+        CopyButton.IsEnabled = hasSelection;
+        RenameMenuItem.IsEnabled = hasSelection;
+        MoveMenuItem.IsEnabled = hasSelection;
+        CopyMenuItem.IsEnabled = hasSelection;
+        CopyToMenuItem.IsEnabled = hasSelection;
+        CutMenuItem.IsEnabled = hasSelection;
+        PasteMenuItem.IsEnabled = canPaste;
+        RemoveButton.IsEnabled = hasSelection;
+        SearchTextBox.IsEnabled = hasTables;
+    }
+
+    private void UpdateLocalizedText() {
+        _nameColumn?.Header = _localizer[EditorStringKeys.Grid.Name];
+
+        UpdateStatus();
     }
 
     private static CultureInfo? GetPreferredCulture(string? cultureName) {
@@ -901,66 +995,6 @@ public partial class MainWindow : Window {
         } catch (CultureNotFoundException) {
             return null;
         }
-    }
-
-    private string GetAvailableCopyLocalKey(string sourceLocalKey) {
-        var currentGroup = GetCurrentGroup();
-        if (!currentGroup.LocalKeyToChild.ContainsKey(sourceLocalKey)) {
-            return sourceLocalKey;
-        }
-
-        var candidate = $"{sourceLocalKey}_copy";
-        if (!currentGroup.LocalKeyToChild.ContainsKey(candidate)) {
-            return candidate;
-        }
-
-        for (var suffix = 2; ; suffix++) {
-            candidate = $"{sourceLocalKey}_copy_{suffix}";
-            if (!currentGroup.LocalKeyToChild.ContainsKey(candidate)) {
-                return candidate;
-            }
-        }
-    }
-
-    private GridState CaptureGridState() {
-        var selectedKey = (TableGrid.SelectedItem as LocalizationRow)?.Node.FullKey;
-        string? currentColumnKey = null;
-        if (TableGrid.CurrentColumn is not null) {
-            currentColumnKey = string.Empty;
-            foreach (var pair in _cultureNameToColumn) {
-                if (ReferenceEquals(pair.Value, TableGrid.CurrentColumn)) {
-                    currentColumnKey = pair.Key;
-                    break;
-                }
-            }
-        }
-
-        var scrollViewer = FindVisualChild<ScrollViewer>(TableGrid);
-        return new GridState(selectedKey, currentColumnKey, scrollViewer?.HorizontalOffset ?? 0, scrollViewer?.VerticalOffset ?? 0);
-    }
-
-    private void RestoreGridState(GridState state) {
-        if (TableGrid.SelectedItem is LocalizationRow row && state.CurrentColumnKey is not null) {
-            DataGridColumn? column;
-            if (state.CurrentColumnKey.Length == 0) {
-                column = TableGrid.Columns.Count > 0 ? TableGrid.Columns[0] : null;
-            } else {
-                _cultureNameToColumn.TryGetValue(state.CurrentColumnKey, out column);
-            }
-
-            if (column is not null) {
-                TableGrid.CurrentCell = new DataGridCellInfo(row, column);
-            }
-        }
-
-        var scrollViewer = FindVisualChild<ScrollViewer>(TableGrid);
-        if (scrollViewer is null) {
-            return;
-        }
-
-        TableGrid.UpdateLayout();
-        scrollViewer.ScrollToHorizontalOffset(state.HorizontalOffset);
-        scrollViewer.ScrollToVerticalOffset(state.VerticalOffset);
     }
 
     private static T? FindVisualParent<T>(DependencyObject? child) where T : DependencyObject {
@@ -994,14 +1028,14 @@ public partial class MainWindow : Window {
 
     private sealed record GridState(string? SelectedKey, string? CurrentColumnKey, double HorizontalOffset, double VerticalOffset);
 
-    private sealed class LocalizationRow(JsonStringTableNode node, string displayName) {
+    private sealed class LocalizationRow(JsonKeyNode node, string displayName) {
 
-        public JsonStringTableNode Node { get; } = node;
+        public JsonKeyNode Node { get; } = node;
 
         public Dictionary<string, string> CultureNameToTranslation { get; } = new(StringComparer.Ordinal);
 
         public string DisplayName { get; } = displayName;
 
-        public bool IsGroup { get; } = node is JsonStringTableGroup;
+        public bool IsGroup { get; } = node is JsonKeyGroup;
     }
 }

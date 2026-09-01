@@ -107,16 +107,10 @@
               <TextBlock Text="{Binding [toolbar.move]}" />
             </StackPanel>
           </Button>
-          <Button x:Name="CopyButton" Style="{StaticResource ToolbarButtonStyle}" Click="CopySelection" ToolTip="{Binding [toolbar.copy_tooltip]}">
+          <Button x:Name="CopyButton" Style="{StaticResource ToolbarButtonStyle}" Click="CopyToSelection" ToolTip="{Binding [toolbar.copy_tooltip]}">
             <StackPanel Orientation="Horizontal">
               <TextBlock Text="&#xE8C8;" Style="{StaticResource ToolbarIconTextStyle}" />
               <TextBlock Text="{Binding [toolbar.copy]}" />
-            </StackPanel>
-          </Button>
-          <Button x:Name="PasteButton" Style="{StaticResource ToolbarButtonStyle}" Click="PasteClipboard" ToolTip="{Binding [toolbar.paste_tooltip]}">
-            <StackPanel Orientation="Horizontal">
-              <TextBlock Text="&#xE77F;" Style="{StaticResource ToolbarIconTextStyle}" />
-              <TextBlock Text="{Binding [toolbar.paste]}" />
             </StackPanel>
           </Button>
           <Button x:Name="RemoveButton" Style="{StaticResource DangerToolbarButtonStyle}" Click="Remove" ToolTip="{Binding [toolbar.remove_tooltip]}">
@@ -242,9 +236,11 @@
             <Separator />
             <MenuItem x:Name="RenameMenuItem" Header="{Binding [context.rename]}" InputGestureText="F2" Click="Rename" />
             <MenuItem x:Name="MoveMenuItem" Header="{Binding [context.move]}" Click="MoveSelection" />
+            <MenuItem x:Name="CopyToMenuItem" Header="{Binding [context.copy_to]}" Click="CopyToSelection" />
             <Separator />
-            <MenuItem x:Name="CopyMenuItem" Header="{Binding [context.copy]}" InputGestureText="Ctrl+C" Click="CopySelection" />
-            <MenuItem x:Name="PasteMenuItem" Header="{Binding [context.paste]}" InputGestureText="Ctrl+V" Click="PasteClipboard" />
+            <MenuItem x:Name="CopyMenuItem" Header="{Binding [context.copy]}" InputGestureText="Ctrl+C" Click="ClipboardCopy" />
+            <MenuItem x:Name="CutMenuItem" Header="{Binding [context.cut]}" InputGestureText="Ctrl+X" Click="ClipboardCut" />
+            <MenuItem x:Name="PasteMenuItem" Header="{Binding [context.paste]}" InputGestureText="Ctrl+V" Click="ClipboardPaste" />
             <Separator />
             <MenuItem Header="{Binding [context.remove]}" InputGestureText="Delete" Foreground="{DynamicResource VsDangerBrush}" Click="Remove" />
           </ContextMenu>
