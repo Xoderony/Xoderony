@@ -8,6 +8,7 @@
 - `Xoderony.Text` / `io.github.xoderony.text`：基于 Span 的 UTF-16 与 UTF-8 文本构造和格式化工具，不依赖 `UnityEngine`。
 - `Xoderony.Logging` / `io.github.xoderony.logging`：无 Unity 依赖的通用日志核心，以及自动携带调用位置与 Unity 对象上下文的 Unity 适配。
 - `Xoderony.Localization` / `io.github.xoderony.localization`：无 Unity 依赖的本地化核心、强类型字符串键生成工具，以及可选的 Hjson Unity 编辑器数据层。
+- `Xoderony.Localization.SourceGeneration`：面向标准 .NET/MSBuild 项目的可选 NuGet analyzer，从显式标记的 `keys.json` 生成强类型字符串键；Unity 的 RoslynAnalyzer 分发不在当前阶段支持范围内。
 
 ## 安装
 

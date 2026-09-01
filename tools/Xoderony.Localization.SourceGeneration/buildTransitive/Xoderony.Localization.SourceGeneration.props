@@ -1,0 +1,7 @@
+<Project>
+  <ItemGroup>
+    <CompilerVisibleItemMetadata Include="AdditionalFiles" MetadataName="XoderonyLocalizationGenerate" />
+    <CompilerVisibleItemMetadata Include="AdditionalFiles" MetadataName="XoderonyLocalizationNamespace" />
+    <CompilerVisibleItemMetadata Include="AdditionalFiles" MetadataName="XoderonyLocalizationTypeName" />
+  </ItemGroup>
+</Project>

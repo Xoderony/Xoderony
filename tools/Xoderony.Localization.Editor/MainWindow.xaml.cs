@@ -20,7 +20,7 @@ namespace Xoderony.Localization.Editor;
 
 public partial class MainWindow : Window {
 
-    private readonly Dictionary<string, DataGridColumn> _columnByCultureName = new(StringComparer.OrdinalIgnoreCase);
+    private readonly Dictionary<string, DataGridColumn> _cultureNameToColumn = new(StringComparer.OrdinalIgnoreCase);
     private readonly EditorLocalizer _localizer;
     private readonly EditorSettings _settings;
     private JsonStringTableCollection? _tables;
@@ -480,7 +480,7 @@ public partial class MainWindow : Window {
 
     private void RebuildColumns() {
         TableGrid.Columns.Clear();
-        _columnByCultureName.Clear();
+        _cultureNameToColumn.Clear();
         _nameColumn = null;
         if (_tables is null) {
             return;
@@ -490,7 +490,7 @@ public partial class MainWindow : Window {
         TableGrid.Columns.Add(_nameColumn);
         foreach (var culture in _tables.Cultures) {
             var column = CreateValueColumn(culture);
-            _columnByCultureName.Add(culture.Name, column);
+            _cultureNameToColumn.Add(culture.Name, column);
             TableGrid.Columns.Add(column);
         }
     }
@@ -506,9 +506,9 @@ public partial class MainWindow : Window {
         selectedKey ??= state.SelectedKey;
         var searchText = SearchTextBox.Text;
         var currentGroup = GetCurrentGroup();
-        var rows = new List<LocalizationRow>(currentGroup.Children.Count);
+        var rows = new List<LocalizationRow>(currentGroup.LocalKeyToChild.Count);
         if (searchText.Length == 0) {
-            foreach (var child in currentGroup.Children.Values) {
+            foreach (var child in currentGroup.LocalKeyToChild.Values) {
                 AddRow(rows, child, child.LocalKey);
             }
         } else {
@@ -531,7 +531,7 @@ public partial class MainWindow : Window {
 
     private void AddSearchRows(List<LocalizationRow> rows, JsonStringTableGroup group, string searchText) {
         Debug.Assert(_tables is not null);
-        foreach (var child in group.Children.Values) {
+        foreach (var child in group.LocalKeyToChild.Values) {
             if (MatchesSearch(_tables, child, searchText)) {
                 var relativeKey = _currentGroupKey.Length == 0 ? child.FullKey : child.FullKey[(_currentGroupKey.Length + 1)..];
                 AddRow(rows, child, relativeKey.Replace(".", " / "));
@@ -548,7 +548,7 @@ public partial class MainWindow : Window {
         var row = new LocalizationRow(node, displayName);
         foreach (var culture in _tables.Cultures) {
             var value = node is JsonStringTableEntry ? _tables.GetValue(culture, node.FullKey) : string.Empty;
-            row.Values.Add(culture.Name, value);
+            row.CultureNameToTranslation.Add(culture.Name, value);
         }
 
         rows.Add(row);
@@ -564,8 +564,8 @@ public partial class MainWindow : Window {
         };
     }
 
-    private DataGridTextColumn CreateValueColumn(CultureInfo culture) {
-        var valuePath = $"Values[{culture.Name}]";
+    private static DataGridTextColumn CreateValueColumn(CultureInfo culture) {
+        var valuePath = $"CultureNameToTranslation[{culture.Name}]";
         return new DataGridTextColumn {
             Header = culture.Name,
             Binding = new Binding(valuePath) { Mode = BindingMode.OneWay },
@@ -783,7 +783,7 @@ public partial class MainWindow : Window {
         }
 
         foreach (var culture in _tables.Cultures) {
-            if (_columnByCultureName.TryGetValue(culture.Name, out var cultureColumn) && ReferenceEquals(cultureColumn, column)) {
+            if (_cultureNameToColumn.TryGetValue(culture.Name, out var cultureColumn) && ReferenceEquals(cultureColumn, column)) {
                 return culture;
             }
         }
@@ -827,7 +827,7 @@ public partial class MainWindow : Window {
         layout.Children.Add(localeText);
 
         var textBox = new TextBox {
-            Text = row.Values[culture.Name],
+            Text = row.CultureNameToTranslation[culture.Name],
             AcceptsReturn = true,
             AcceptsTab = true,
             TextWrapping = TextWrapping.Wrap,
@@ -877,12 +877,12 @@ public partial class MainWindow : Window {
             }
         };
         dialog.ShowDialog();
-        if (!confirmed || string.Equals(textBox.Text, row.Values[culture.Name], StringComparison.Ordinal)) {
+        if (!confirmed || string.Equals(textBox.Text, row.CultureNameToTranslation[culture.Name], StringComparison.Ordinal)) {
             return;
         }
 
         _tables.SetValue(culture, row.Node.FullKey, textBox.Text);
-        row.Values[culture.Name] = textBox.Text;
+        row.CultureNameToTranslation[culture.Name] = textBox.Text;
         TableGrid.Items.Refresh();
         UpdateStatus();
     }
@@ -905,18 +905,18 @@ public partial class MainWindow : Window {
 
     private string GetAvailableCopyLocalKey(string sourceLocalKey) {
         var currentGroup = GetCurrentGroup();
-        if (!currentGroup.Children.ContainsKey(sourceLocalKey)) {
+        if (!currentGroup.LocalKeyToChild.ContainsKey(sourceLocalKey)) {
             return sourceLocalKey;
         }
 
         var candidate = $"{sourceLocalKey}_copy";
-        if (!currentGroup.Children.ContainsKey(candidate)) {
+        if (!currentGroup.LocalKeyToChild.ContainsKey(candidate)) {
             return candidate;
         }
 
         for (var suffix = 2; ; suffix++) {
             candidate = $"{sourceLocalKey}_copy_{suffix}";
-            if (!currentGroup.Children.ContainsKey(candidate)) {
+            if (!currentGroup.LocalKeyToChild.ContainsKey(candidate)) {
                 return candidate;
             }
         }
@@ -927,7 +927,7 @@ public partial class MainWindow : Window {
         string? currentColumnKey = null;
         if (TableGrid.CurrentColumn is not null) {
             currentColumnKey = string.Empty;
-            foreach (var pair in _columnByCultureName) {
+            foreach (var pair in _cultureNameToColumn) {
                 if (ReferenceEquals(pair.Value, TableGrid.CurrentColumn)) {
                     currentColumnKey = pair.Key;
                     break;
@@ -945,7 +945,7 @@ public partial class MainWindow : Window {
             if (state.CurrentColumnKey.Length == 0) {
                 column = TableGrid.Columns.Count > 0 ? TableGrid.Columns[0] : null;
             } else {
-                _columnByCultureName.TryGetValue(state.CurrentColumnKey, out column);
+                _cultureNameToColumn.TryGetValue(state.CurrentColumnKey, out column);
             }
 
             if (column is not null) {
@@ -998,11 +998,9 @@ public partial class MainWindow : Window {
 
         public JsonStringTableNode Node { get; } = node;
 
-        public Dictionary<string, string> Values { get; } = new(StringComparer.Ordinal);
+        public Dictionary<string, string> CultureNameToTranslation { get; } = new(StringComparer.Ordinal);
 
         public string DisplayName { get; } = displayName;
-
-        public string IconGlyph { get; } = node is JsonStringTableGroup ? "\uE8B7" : "\uE8A5";
 
         public bool IsGroup { get; } = node is JsonStringTableGroup;
     }

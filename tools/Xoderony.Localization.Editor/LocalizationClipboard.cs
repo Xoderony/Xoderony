@@ -4,6 +4,7 @@ using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.Runtime.InteropServices;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 using System.Windows;
 using Xoderony.Localization.Json;
 
@@ -83,27 +84,27 @@ internal static class LocalizationClipboard {
 
     private static ClipboardNode CreateNode(JsonStringTableCollection tables, JsonStringTableNode node) {
         if (node is JsonStringTableGroup group) {
-            var children = new Dictionary<string, ClipboardNode>(StringComparer.Ordinal);
-            foreach (var child in group.Children.Values) {
-                children.Add(child.LocalKey, CreateNode(tables, child));
+            var localKeyToChild = new Dictionary<string, ClipboardNode>(StringComparer.Ordinal);
+            foreach (var child in group.LocalKeyToChild.Values) {
+                localKeyToChild.Add(child.LocalKey, CreateNode(tables, child));
             }
 
-            return new ClipboardNode { Children = children };
+            return new ClipboardNode { LocalKeyToChild = localKeyToChild };
         }
 
-        var values = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        var cultureNameToTranslation = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
         foreach (var culture in tables.Cultures) {
-            values.Add(culture.Name, tables.GetValue(culture, node.FullKey));
+            cultureNameToTranslation.Add(culture.Name, tables.GetValue(culture, node.FullKey));
         }
 
-        return new ClipboardNode { Values = values };
+        return new ClipboardNode { CultureNameToTranslation = cultureNameToTranslation };
     }
 
     private static void AddNode(JsonStringTableCollection tables, string parentGroupKey, string localKey, ClipboardNode node) {
         var key = JsonStringTableNode.CombineKey(parentGroupKey, localKey);
-        if (node.Children is not null) {
+        if (node.LocalKeyToChild is not null) {
             tables.AddGroup(parentGroupKey, localKey);
-            foreach (var child in node.Children) {
+            foreach (var child in node.LocalKeyToChild) {
                 AddNode(tables, key, child.Key, child.Value);
             }
 
@@ -112,14 +113,14 @@ internal static class LocalizationClipboard {
 
         tables.AddEntry(parentGroupKey, localKey);
         foreach (var culture in tables.Cultures) {
-            if (TryGetValue(node.Values!, culture, out var value)) {
+            if (TryGetValue(node.CultureNameToTranslation!, culture, out var value)) {
                 tables.SetValue(culture, key, value);
             }
         }
     }
 
-    private static bool TryGetValue(Dictionary<string, string> values, CultureInfo culture, [NotNullWhen(true)] out string? value) {
-        foreach (var pair in values) {
+    private static bool TryGetValue(Dictionary<string, string> cultureNameToTranslation, CultureInfo culture, [NotNullWhen(true)] out string? value) {
+        foreach (var pair in cultureNameToTranslation) {
             if (string.Equals(pair.Key, culture.Name, StringComparison.OrdinalIgnoreCase)) {
                 value = pair.Value;
                 return true;
@@ -131,12 +132,12 @@ internal static class LocalizationClipboard {
     }
 
     private static bool IsValidNode(ClipboardNode? node) {
-        if (node is null || (node.Children is null) == (node.Values is null)) {
+        if (node is null || (node.LocalKeyToChild is null) == (node.CultureNameToTranslation is null)) {
             return false;
         }
 
-        if (node.Values is not null) {
-            foreach (var value in node.Values.Values) {
+        if (node.CultureNameToTranslation is not null) {
+            foreach (var value in node.CultureNameToTranslation.Values) {
                 if (value is null) {
                     return false;
                 }
@@ -145,7 +146,7 @@ internal static class LocalizationClipboard {
             return true;
         }
 
-        foreach (var child in node.Children!) {
+        foreach (var child in node.LocalKeyToChild!) {
             if (!JsonStringTableNode.IsValidLocalKey(child.Key) || !IsValidNode(child.Value)) {
                 return false;
             }
@@ -171,8 +172,10 @@ internal static class LocalizationClipboard {
 
         public ClipboardNode() { }
 
-        public Dictionary<string, ClipboardNode>? Children { get; init; }
+        [JsonPropertyName("Children")]
+        public Dictionary<string, ClipboardNode>? LocalKeyToChild { get; init; }
 
-        public Dictionary<string, string>? Values { get; init; }
+        [JsonPropertyName("Values")]
+        public Dictionary<string, string>? CultureNameToTranslation { get; init; }
     }
 }

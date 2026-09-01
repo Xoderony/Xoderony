@@ -59,7 +59,7 @@ public partial class MoveDestinationDialog : Window {
             return;
         }
 
-        if (item.Node.Children.ContainsKey(_sourceLocalKey)) {
+        if (item.Node.LocalKeyToChild.ContainsKey(_sourceLocalKey)) {
             MoveButton.IsEnabled = false;
             ValidationText.Text = _conflictMessage;
             return;
@@ -71,7 +71,7 @@ public partial class MoveDestinationDialog : Window {
 
     private static MoveDestinationItem CreateItem(JsonStringTableGroup group, string excludedGroupKey, string selectedGroupKey, string rootDisplayName) {
         var children = new List<MoveDestinationItem>();
-        foreach (var child in group.Children.Values) {
+        foreach (var child in group.LocalKeyToChild.Values) {
             if (child is not JsonStringTableGroup childGroup || string.Equals(child.FullKey, excludedGroupKey, StringComparison.Ordinal)) {
                 continue;
             }

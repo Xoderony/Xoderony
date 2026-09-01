@@ -1,0 +1,13 @@
+<Project>
+  <PropertyGroup>
+    <XoderonyLocalizationDefaultNamespace Condition="'$(XoderonyLocalizationDefaultNamespace)' == ''">$(RootNamespace)</XoderonyLocalizationDefaultNamespace>
+    <XoderonyLocalizationDefaultNamespace Condition="'$(XoderonyLocalizationDefaultNamespace)' == ''">Xoderony.Localization</XoderonyLocalizationDefaultNamespace>
+    <XoderonyLocalizationDefaultTypeName Condition="'$(XoderonyLocalizationDefaultTypeName)' == ''">StringTableKeys</XoderonyLocalizationDefaultTypeName>
+  </PropertyGroup>
+  <ItemGroup>
+    <AdditionalFiles Update="@(AdditionalFiles)" Condition="'%(AdditionalFiles.XoderonyLocalizationGenerate)' == 'true'">
+      <XoderonyLocalizationNamespace Condition="'%(AdditionalFiles.XoderonyLocalizationNamespace)' == ''">$(XoderonyLocalizationDefaultNamespace)</XoderonyLocalizationNamespace>
+      <XoderonyLocalizationTypeName Condition="'%(AdditionalFiles.XoderonyLocalizationTypeName)' == ''">$(XoderonyLocalizationDefaultTypeName)</XoderonyLocalizationTypeName>
+    </AdditionalFiles>
+  </ItemGroup>
+</Project>

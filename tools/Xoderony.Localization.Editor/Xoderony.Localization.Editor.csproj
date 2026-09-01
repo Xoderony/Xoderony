@@ -12,8 +12,17 @@
     <ProjectReference Include="..\..\src\Xoderony.Localization\Xoderony.Localization.csproj" />
     <ProjectReference Include="..\..\src\Xoderony.Localization.Json\Xoderony.Localization.Json.csproj" />
     <ProjectReference Include="..\..\src\Xoderony.Localization.Tooling\Xoderony.Localization.Tooling.csproj" />
+    <ProjectReference Include="..\Xoderony.Localization.SourceGeneration\Xoderony.Localization.SourceGeneration.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
   </ItemGroup>
   <ItemGroup>
+    <CompilerVisibleItemMetadata Include="AdditionalFiles" MetadataName="XoderonyLocalizationGenerate" />
+    <CompilerVisibleItemMetadata Include="AdditionalFiles" MetadataName="XoderonyLocalizationNamespace" />
+    <CompilerVisibleItemMetadata Include="AdditionalFiles" MetadataName="XoderonyLocalizationTypeName" />
     <None Update="Localization\*.json" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+    <AdditionalFiles Include="Localization\keys.json">
+      <XoderonyLocalizationGenerate>true</XoderonyLocalizationGenerate>
+      <XoderonyLocalizationNamespace>Xoderony.Localization.Editor</XoderonyLocalizationNamespace>
+      <XoderonyLocalizationTypeName>EditorStringKeys</XoderonyLocalizationTypeName>
+    </AdditionalFiles>
   </ItemGroup>
 </Project>

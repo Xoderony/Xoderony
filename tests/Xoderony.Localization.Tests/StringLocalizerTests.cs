@@ -9,13 +9,13 @@ public class StringLocalizerTests {
 
     [Fact]
     public void Constructor_CopiesSourceStrings() {
-        var localizedStrings = new Dictionary<string, string> {
+        var keyToLocalizedString = new Dictionary<string, string> {
             ["Greeting"] = "Hello"
         };
-        var localizer = new StringLocalizer(CultureInfo.GetCultureInfo("en-US"), localizedStrings);
+        var localizer = new StringLocalizer(CultureInfo.GetCultureInfo("en-US"), keyToLocalizedString);
 
-        localizedStrings["Greeting"] = "Changed";
-        localizedStrings["New"] = "New value";
+        keyToLocalizedString["Greeting"] = "Changed";
+        keyToLocalizedString["New"] = "New value";
 
         Assert.Equal("Hello", localizer["Greeting"]);
         Assert.Equal("New", localizer["New"]);

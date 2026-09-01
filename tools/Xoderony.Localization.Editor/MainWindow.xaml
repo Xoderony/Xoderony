@@ -20,9 +20,7 @@
           <ColumnDefinition Width="*" />
         </Grid.ColumnDefinitions>
         <TextBlock Grid.Column="0"
-                   Text="{Binding IconGlyph}"
-                   Style="{StaticResource IconTextStyle}"
-                   Foreground="{DynamicResource VsMutedTextBrush}"
+                   Style="{StaticResource NodeTypeIconTextStyle}"
                    HorizontalAlignment="Center"
                    VerticalAlignment="Center" />
         <TextBlock Grid.Column="1"

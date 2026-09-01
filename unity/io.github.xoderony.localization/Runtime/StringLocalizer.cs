@@ -8,7 +8,7 @@ namespace Xoderony.Localization;
 
 public sealed class StringLocalizer : IStringLocalizer {
 
-    private readonly FrozenDictionary<string, string> _localizedStringByKey;
+    private readonly FrozenDictionary<string, string> _keyToLocalizedString;
     private readonly CultureInfo _culture;
 
     public CultureInfo Culture => _culture;
@@ -20,7 +20,7 @@ public sealed class StringLocalizer : IStringLocalizer {
         }
         Debug.Assert(localizedStrings is not null);
 
-        var localizedStringByKey = new Dictionary<string, string>(StringComparer.Ordinal);
+        var keyToLocalizedString = new Dictionary<string, string>(StringComparer.Ordinal);
         foreach (var entry in localizedStrings) {
             var key = entry.Key;
             var value = entry.Value;
@@ -30,19 +30,19 @@ public sealed class StringLocalizer : IStringLocalizer {
             if (value is null) {
                 throw new ArgumentException("A localized string cannot be null.", nameof(localizedStrings));
             }
-            if (!localizedStringByKey.TryAdd(key, value)) {
+            if (!keyToLocalizedString.TryAdd(key, value)) {
                 throw new ArgumentException($"Duplicate localization key '{key}'.", nameof(localizedStrings));
             }
         }
 
         _culture = CultureInfo.GetCultureInfo(culture.Name);
-        _localizedStringByKey = localizedStringByKey.ToFrozenDictionary(StringComparer.Ordinal);
+        _keyToLocalizedString = keyToLocalizedString.ToFrozenDictionary(StringComparer.Ordinal);
     }
 
     /// <summary>直接持有传入的 culture 与字符串表，不解析 culture，也不复制字典。</summary>
-    internal StringLocalizer(CultureInfo culture, FrozenDictionary<string, string> localizedStringByKey) {
+    internal StringLocalizer(CultureInfo culture, FrozenDictionary<string, string> keyToLocalizedString) {
         _culture = culture;
-        _localizedStringByKey = localizedStringByKey;
+        _keyToLocalizedString = keyToLocalizedString;
     }
 
     public string this[string key] {
@@ -50,7 +50,7 @@ public sealed class StringLocalizer : IStringLocalizer {
             if (string.IsNullOrEmpty(key)) {
                 throw new ArgumentException("The localization key cannot be null or empty.", nameof(key));
             }
-            if (_localizedStringByKey.TryGetValue(key, out var value)) {
+            if (_keyToLocalizedString.TryGetValue(key, out var value)) {
                 return value;
             }
 
@@ -64,7 +64,7 @@ public sealed class StringLocalizer : IStringLocalizer {
                 throw new ArgumentException("The localization key cannot be null or empty.", nameof(key));
             }
             Debug.Assert(arguments is not null);
-            if (_localizedStringByKey.TryGetValue(key, out var format)) {
+            if (_keyToLocalizedString.TryGetValue(key, out var format)) {
                 return string.Format(_culture, format, arguments);
             }
 

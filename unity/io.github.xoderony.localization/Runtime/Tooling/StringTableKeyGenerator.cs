@@ -19,6 +19,9 @@ public static class StringTableKeyGenerator {
     ];
 
     public static string Generate(IEnumerable<string> keys, string namespaceName, string typeName) {
+#if NETSTANDARD2_0
+#pragma warning disable CS8602, CS8604
+#endif
         Debug.Assert(keys is not null);
         Debug.Assert(namespaceName is not null);
         Debug.Assert(typeName is not null);
@@ -44,6 +47,9 @@ public static class StringTableKeyGenerator {
         source.Append("public static partial class ").Append(typeName).Append(" {\n");
         AppendMembers(source, root, 1);
         source.Append("}\n");
+#if NETSTANDARD2_0
+#pragma warning restore CS8602, CS8604
+#endif
         return source.ToString();
     }
 
@@ -57,7 +63,7 @@ public static class StringTableKeyGenerator {
         for (var index = 0; index < localKeys.Length; index++) {
             var localKey = localKeys[index];
             var identifier = ToPascalCase(localKey);
-            if (current.Children.TryGetValue(identifier, out var child)) {
+            if (current.IdentifierToChild.TryGetValue(identifier, out var child)) {
                 if (!StringComparer.Ordinal.Equals(child.LocalKey, localKey)) {
                     throw new ArgumentException(
                         $"The local key '{localKey}' and '{child.LocalKey}' both generate the identifier '{identifier}'.",
@@ -65,7 +71,7 @@ public static class StringTableKeyGenerator {
                 }
             } else {
                 child = new KeyNode(localKey);
-                current.Children.Add(identifier, child);
+                current.IdentifierToChild.Add(identifier, child);
             }
 
             current = child;
@@ -74,7 +80,7 @@ public static class StringTableKeyGenerator {
             }
         }
 
-        if (current.Children.Count != 0) {
+        if (current.IdentifierToChild.Count != 0) {
             throw new ArgumentException($"The key '{key}' is also used as a key group.", parameterName);
         }
 
@@ -86,7 +92,9 @@ public static class StringTableKeyGenerator {
     }
 
     private static void AppendMembers(StringBuilder source, KeyNode node, int depth) {
-        foreach (var (identifier, child) in node.Children) {
+        foreach (var pair in node.IdentifierToChild) {
+            var identifier = pair.Key;
+            var child = pair.Value;
             source.Append('\n').Append(' ', depth * 4);
             if (child.Key is not null) {
                 source.Append("public const string ").Append(identifier).Append(" = \"").Append(child.Key).Append("\";\n");
@@ -100,7 +108,7 @@ public static class StringTableKeyGenerator {
     }
 
     private static bool IsValidKey(string? key) {
-        if (string.IsNullOrEmpty(key)) {
+        if (key is null || key.Length == 0) {
             return false;
         }
 
@@ -172,7 +180,9 @@ public static class StringTableKeyGenerator {
     }
 
     private static void ValidateMemberNames(KeyNode node, string containingTypeName, string parameterName) {
-        foreach (var (identifier, child) in node.Children) {
+        foreach (var pair in node.IdentifierToChild) {
+            var identifier = pair.Key;
+            var child = pair.Value;
             if (StringComparer.Ordinal.Equals(identifier, containingTypeName)) {
                 throw new ArgumentException(
                     $"The local key '{child.LocalKey}' generates the same identifier as its containing type '{containingTypeName}'.",
@@ -215,6 +225,6 @@ public static class StringTableKeyGenerator {
 
         public string? Key { get; set; }
 
-        public SortedDictionary<string, KeyNode> Children { get; } = new(StringComparer.Ordinal);
+        public SortedDictionary<string, KeyNode> IdentifierToChild { get; } = new(StringComparer.Ordinal);
     }
 }

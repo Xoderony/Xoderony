@@ -12,22 +12,22 @@ public sealed class JsonStringTableCollection {
 
     public const string KeysFileName = "keys.json";
 
-    private readonly HashSet<JsonStringTable> _dirtyTables = [];
     private readonly string _keysFilePath;
-    private readonly SortedDictionary<string, JsonStringTable> _tables;
+    private readonly HashSet<JsonStringTable> _dirtyTables = [];
+    private readonly SortedDictionary<string, JsonStringTable> _cultureNameToTable;
     private bool _keysDirty;
     private JsonObject _keysRoot;
     private JsonStringTableGroup _rootGroup;
 
     public IReadOnlyList<CultureInfo> Cultures {
         get {
-            if (_tables.Count == 0) {
+            if (_cultureNameToTable.Count == 0) {
                 return [];
             }
 
-            var cultures = new CultureInfo[_tables.Count];
+            var cultures = new CultureInfo[_cultureNameToTable.Count];
             var index = 0;
-            foreach (var table in _tables.Values) {
+            foreach (var table in _cultureNameToTable.Values) {
                 cultures[index++] = table.Culture;
             }
 
@@ -39,15 +39,15 @@ public sealed class JsonStringTableCollection {
 
     public bool IsDirty => _keysDirty || _dirtyTables.Count != 0;
 
-    /// <summary>接管 keysRoot 与 tables 的所有权，不重新解析或复制。</summary>
-    private JsonStringTableCollection(string keysFilePath, JsonObject keysRoot, SortedDictionary<string, JsonStringTable> tables) {
+    /// <summary>接管 keysRoot 与 cultureNameToTable 的所有权，不重新解析或复制。</summary>
+    private JsonStringTableCollection(string keysFilePath, JsonObject keysRoot, SortedDictionary<string, JsonStringTable> cultureNameToTable) {
         Debug.Assert(!string.IsNullOrWhiteSpace(keysFilePath));
         Debug.Assert(keysRoot is not null);
-        Debug.Assert(tables is not null);
+        Debug.Assert(cultureNameToTable is not null);
 
         _keysFilePath = keysFilePath;
         _keysRoot = keysRoot;
-        _tables = tables;
+        _cultureNameToTable = cultureNameToTable;
         _rootGroup = BuildRootGroup();
     }
 
@@ -56,32 +56,19 @@ public sealed class JsonStringTableCollection {
 
         var keysFilePath = Path.Combine(directoryPath, KeysFileName);
         var keysRoot = LoadKeysRoot(keysFilePath);
-        var tables = LoadTables(directoryPath);
-        return new JsonStringTableCollection(keysFilePath, keysRoot, tables);
+        var cultureNameToTable = LoadTables(directoryPath);
+        return new JsonStringTableCollection(keysFilePath, keysRoot, cultureNameToTable);
 
         static JsonObject LoadKeysRoot(string path) {
             if (!File.Exists(path)) {
                 return [];
             }
 
-            try {
-                using var stream = File.OpenRead(path);
-                var value = JsonNode.Parse(stream, documentOptions: new JsonDocumentOptions {
-                    AllowTrailingCommas = false,
-                    CommentHandling = JsonCommentHandling.Disallow
-                });
-                if (value is not JsonObject root) {
-                    throw new InvalidDataException($"The root value in '{path}' must be an object.");
-                }
-
-                return root;
-            } catch (JsonException exception) {
-                throw new InvalidDataException($"The JSON file '{path}' is invalid.", exception);
-            }
+            return JsonObjectFile.Read(path);
         }
 
         static SortedDictionary<string, JsonStringTable> LoadTables(string path) {
-            var tables = new SortedDictionary<string, JsonStringTable>(StringComparer.OrdinalIgnoreCase);
+            var cultureNameToTable = new SortedDictionary<string, JsonStringTable>(StringComparer.OrdinalIgnoreCase);
             foreach (var filePath in Directory.EnumerateFiles(path, "*.json", SearchOption.TopDirectoryOnly)) {
                 if (string.Equals(Path.GetFileName(filePath), KeysFileName, StringComparison.OrdinalIgnoreCase)) {
                     continue;
@@ -90,18 +77,18 @@ public sealed class JsonStringTableCollection {
                 var cultureName = Path.GetFileNameWithoutExtension(filePath);
                 var culture = CultureInfo.GetCultureInfo(cultureName);
                 var table = JsonStringTable.Load(culture, filePath);
-                if (!tables.TryAdd(table.Culture.Name, table)) {
+                if (!cultureNameToTable.TryAdd(table.Culture.Name, table)) {
                     throw new InvalidDataException($"The culture '{table.Culture.Name}' has more than one string table in '{path}'.");
                 }
             }
 
-            return tables;
+            return cultureNameToTable;
         }
     }
 
     public void Save() {
         if (_keysDirty) {
-            JsonStringTable.WriteJsonFile(_keysFilePath, _keysRoot);
+            JsonObjectFile.Write(_keysFilePath, _keysRoot);
             _keysDirty = false;
         }
 
@@ -122,12 +109,12 @@ public sealed class JsonStringTableCollection {
 
         culture = CultureInfo.GetCultureInfo(culture.Name);
         var table = new JsonStringTable(culture, filePath, new SortedDictionary<string, string>(StringComparer.Ordinal));
-        if (!_tables.TryAdd(table.Culture.Name, table)) {
+        if (!_cultureNameToTable.TryAdd(table.Culture.Name, table)) {
             throw new ArgumentException($"The culture '{table.Culture.Name}' already has a string table.", nameof(culture));
         }
 
-        foreach (var key in _rootGroup.GetDescendantKeys()) {
-            table.Values.Add(key, string.Empty);
+        foreach (var key in _rootGroup.GetDescendantEntryKeys()) {
+            table.SetValue(key, string.Empty);
         }
 
         _dirtyTables.Add(table);
@@ -152,9 +139,10 @@ public sealed class JsonStringTableCollection {
         }
 
         var key = JsonStringTableNode.CombineKey(parentGroupKey, localKey);
-        foreach (var table in _tables.Values) {
-            table.Values[key] = string.Empty;
-            _dirtyTables.Add(table);
+        foreach (var table in _cultureNameToTable.Values) {
+            if (table.SetValue(key, string.Empty)) {
+                _dirtyTables.Add(table);
+            }
         }
 
         _keysDirty = true;
@@ -242,8 +230,8 @@ public sealed class JsonStringTableCollection {
         newParent.Add(newLocalKey, value?.DeepClone());
 
         var newKey = JsonStringTableNode.CombineKey(newParentGroupKey, newLocalKey);
-        if (node is JsonStringTableGroup) {
-            CopyGroupValueKeys(key, newKey);
+        if (node is JsonStringTableGroup group) {
+            CopyGroupValueKeys(group, newKey);
         } else {
             CopyEntryValueKeys(key, newKey);
         }
@@ -251,36 +239,27 @@ public sealed class JsonStringTableCollection {
         _keysDirty = true;
         _rootGroup = BuildRootGroup();
 
-        void CopyGroupValueKeys(string sourceKey, string targetKey) {
-            foreach (var table in _tables.Values) {
-                var additions = new List<(string Key, string Text)>();
-                foreach (var (valueKey, text) in table.Values) {
-                    if (string.Equals(valueKey, sourceKey, StringComparison.Ordinal) || valueKey.StartsWith($"{sourceKey}.", StringComparison.Ordinal)) {
-                        additions.Add((targetKey + valueKey[sourceKey.Length..], text));
-                    }
+        void CopyGroupValueKeys(JsonStringTableGroup sourceGroup, string targetGroupKey) {
+            foreach (var table in _cultureNameToTable.Values) {
+                var changed = false;
+                foreach (var sourceKey in sourceGroup.GetDescendantEntryKeys()) {
+                    var targetKey = targetGroupKey + sourceKey[sourceGroup.FullKey.Length..];
+                    var translation = table.TryGetValue(sourceKey, out var sourceTranslation) ? sourceTranslation : string.Empty;
+                    changed |= table.SetValue(targetKey, translation);
                 }
 
-                if (additions.Count == 0) {
-                    continue;
+                if (changed) {
+                    _dirtyTables.Add(table);
                 }
-
-                foreach (var (valueKey, text) in additions) {
-                    table.Values[valueKey] = text;
-                }
-
-                _dirtyTables.Add(table);
             }
         }
 
         void CopyEntryValueKeys(string sourceKey, string targetKey) {
-            foreach (var table in _tables.Values) {
-                if (table.Values.TryGetValue(sourceKey, out var text)) {
-                    table.Values[targetKey] = text;
-                } else {
-                    table.Values[targetKey] = string.Empty;
+            foreach (var table in _cultureNameToTable.Values) {
+                var text = table.TryGetValue(sourceKey, out var sourceText) ? sourceText : string.Empty;
+                if (table.SetValue(targetKey, text)) {
+                    _dirtyTables.Add(table);
                 }
-
-                _dirtyTables.Add(table);
             }
         }
     }
@@ -303,9 +282,9 @@ public sealed class JsonStringTableCollection {
         _rootGroup = BuildRootGroup();
 
         void RemoveGroupValueKeys(string groupKey) {
-            foreach (var table in _tables.Values) {
+            foreach (var table in _cultureNameToTable.Values) {
                 var removals = new List<string>();
-                foreach (var valueKey in table.Values.Keys) {
+                foreach (var valueKey in table.Keys) {
                     if (string.Equals(valueKey, groupKey, StringComparison.Ordinal) || valueKey.StartsWith($"{groupKey}.", StringComparison.Ordinal)) {
                         removals.Add(valueKey);
                     }
@@ -316,7 +295,7 @@ public sealed class JsonStringTableCollection {
                 }
 
                 foreach (var valueKey in removals) {
-                    table.Values.Remove(valueKey);
+                    table.RemoveValue(valueKey, out _);
                 }
 
                 _dirtyTables.Add(table);
@@ -324,8 +303,8 @@ public sealed class JsonStringTableCollection {
         }
 
         void RemoveEntryValueKeys(string entryKey) {
-            foreach (var table in _tables.Values) {
-                if (table.Values.Remove(entryKey)) {
+            foreach (var table in _cultureNameToTable.Values) {
+                if (table.RemoveValue(entryKey, out _)) {
                     _dirtyTables.Add(table);
                 }
             }
@@ -338,7 +317,7 @@ public sealed class JsonStringTableCollection {
         }
 
         var table = GetTable(culture);
-        return table.Values.TryGetValue(key, out var value) ? value : string.Empty;
+        return table.TryGetValue(key, out var value) ? value : string.Empty;
     }
 
     public void SetValue(CultureInfo culture, string key, string value) {
@@ -349,19 +328,16 @@ public sealed class JsonStringTableCollection {
         }
 
         var table = GetTable(culture);
-        if (table.Values.TryGetValue(key, out var current) && string.Equals(current, value, StringComparison.Ordinal)) {
-            return;
+        if (table.SetValue(key, value)) {
+            _dirtyTables.Add(table);
         }
-
-        table.Values[key] = value;
-        _dirtyTables.Add(table);
     }
 
     public int GetEmptyValueCount(CultureInfo culture) {
         var table = GetTable(culture);
         var count = 0;
-        foreach (var key in _rootGroup.GetDescendantKeys()) {
-            if (!table.Values.TryGetValue(key, out var value) || value.Length == 0) {
+        foreach (var key in _rootGroup.GetDescendantEntryKeys()) {
+            if (!table.TryGetValue(key, out var value) || value.Length == 0) {
                 count++;
             }
         }
@@ -370,12 +346,12 @@ public sealed class JsonStringTableCollection {
     }
 
     public IEnumerable<string> GetKeys() {
-        return _rootGroup.GetDescendantKeys();
+        return _rootGroup.GetDescendantEntryKeys();
     }
 
     private JsonStringTable GetTable(CultureInfo culture) {
         Debug.Assert(culture is not null);
-        if (!_tables.TryGetValue(culture.Name, out var table)) {
+        if (!_cultureNameToTable.TryGetValue(culture.Name, out var table)) {
             throw new ArgumentException($"The culture '{culture.Name}' is not part of this string table collection.", nameof(culture));
         }
 
@@ -383,9 +359,9 @@ public sealed class JsonStringTableCollection {
     }
 
     private void RewriteGroupValueKeys(string oldKey, string newKey) {
-        foreach (var table in _tables.Values) {
+        foreach (var table in _cultureNameToTable.Values) {
             var replacements = new List<(string OldKey, string NewKey)>();
-            foreach (var key in table.Values.Keys) {
+            foreach (var key in table.Keys) {
                 if (string.Equals(key, oldKey, StringComparison.Ordinal) || key.StartsWith($"{oldKey}.", StringComparison.Ordinal)) {
                     replacements.Add((key, newKey + key[oldKey.Length..]));
                 }
@@ -396,11 +372,11 @@ public sealed class JsonStringTableCollection {
             }
 
             foreach (var (from, to) in replacements) {
-                if (!table.Values.Remove(from, out var text)) {
+                if (!table.RemoveValue(from, out var translation)) {
                     continue;
                 }
 
-                table.Values[to] = text;
+                table.SetValue(to, translation);
             }
 
             _dirtyTables.Add(table);
@@ -408,9 +384,9 @@ public sealed class JsonStringTableCollection {
     }
 
     private void RewriteEntryValueKeys(string oldKey, string newKey) {
-        foreach (var table in _tables.Values) {
-            if (table.Values.Remove(oldKey, out var text)) {
-                table.Values[newKey] = text;
+        foreach (var table in _cultureNameToTable.Values) {
+            if (table.RemoveValue(oldKey, out var translation)) {
+                table.SetValue(newKey, translation);
                 _dirtyTables.Add(table);
             }
         }
@@ -432,12 +408,13 @@ public sealed class JsonStringTableCollection {
         foreach (var (localKey, value) in keys) {
             JsonStringTableNode.ValidateSourceLocalKey(localKey, _keysFilePath);
             if (value is null || (value is JsonValue jsonValue && jsonValue.GetValueKind() == JsonValueKind.Null)) {
-                group.GetOrAddEntry(localKey);
+                group.AddEntry(localKey);
                 continue;
             }
 
             if (value is JsonObject child) {
-                PopulateGroup(child, group.GetOrAddGroup(localKey));
+                var childGroup = group.AddGroup(localKey);
+                PopulateGroup(child, childGroup);
                 continue;
             }
 
@@ -447,8 +424,12 @@ public sealed class JsonStringTableCollection {
     }
 
     private JsonObject GetGroupObject(string groupKey) {
+        if (groupKey.Length == 0) {
+            return _keysRoot;
+        }
+
         var current = _keysRoot;
-        foreach (var localKey in groupKey.Split('.', StringSplitOptions.RemoveEmptyEntries)) {
+        foreach (var localKey in groupKey.Split('.')) {
             if (!current.TryGetPropertyValue(localKey, out var child) || child is not JsonObject group) {
                 throw new InvalidOperationException($"The keys document does not contain '{groupKey}'.");
             }

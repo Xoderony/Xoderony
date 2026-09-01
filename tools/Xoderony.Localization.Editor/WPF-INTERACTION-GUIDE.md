@@ -219,9 +219,8 @@ ToolTip="{Binding Node.FullKey}"
 ```text
 Node         JSON 节点及完整键
 DisplayName  普通浏览时为键段，搜索时为相对路径
-Values       culture 名称到翻译字符串的字典
-IconGlyph    键组或文本项图标
-IsGroup      是否为键组
+CultureNameToTranslation       culture 名称到翻译字符串的字典
+IsGroup      是否为键组，并驱动键组与词条的图标样式
 ```
 
 它没有写回 JSON 的职责。真正的数据修改仍通过 `JsonStringTableCollection` 完成。
@@ -244,15 +243,15 @@ AutoGenerateColumns="False"
 每个翻译列绑定到类似下面的路径：
 
 ```csharp
-Values[zh-CN]
-Values[en-US]
+CultureNameToTranslation[zh-CN]
+CultureNameToTranslation[en-US]
 ```
 
 `_columnByCultureName` 保存 culture 与列实例的对应关系，用于刷新列表后恢复当前列。
 
 ### 两种列类型
 
-名称列使用只读的 `DataGridTemplateColumn`，因为它需要组合键组图标和显示名称。
+名称列使用只读的 `DataGridTemplateColumn`，因为它需要组合节点类型图标和显示名称。
 
 Locale 列使用 `DataGridTextColumn`，因为它只需显示和编辑字符串，标准列实现更简单。
 
@@ -270,7 +269,7 @@ Locale 列使用 `DataGridTextColumn`，因为它只需显示和编辑字符串�
 2. 没有搜索文本时，只枚举当前键组的直接子项。
 3. 有搜索文本时，递归枚举当前键组及全部后代。
 4. 为每个结果创建 `LocalizationRow`。
-5. 对文本项读取每个 Locale 的值，填入 `row.Values`。
+5. 对词条读取每个 Locale 的值，填入 `row.CultureNameToTranslation`。
 6. 把列表赋给 `TableGrid.ItemsSource`。
 7. 恢复选择项、当前列和滚动位置。
 
@@ -295,7 +294,7 @@ EndCellEdit
   ↓
 TryApplyValue
   ├─ _tables.SetValue(culture, fullKey, value)
-  ├─ row.Values[culture.Name] = value
+  ├─ row.CultureNameToTranslation[culture.Name] = value
   └─ UpdateStatus()
 ```
 
@@ -304,7 +303,7 @@ TryApplyValue
 普通翻译修改只更新：
 
 - JSON 数据层中的值。
-- 当前 `LocalizationRow.Values` 中对应的值。
+- 当前 `LocalizationRow.CultureNameToTranslation` 中对应的值。
 - 保存状态和底部摘要。
 
 这样 Enter、Tab、鼠标切换单元格和编辑状态下 `Ctrl+S` 都不会重建表格。
@@ -361,7 +360,7 @@ Backspace 由窗口的 `OnPreviewKeyDown()` 捕获，并通过 `GetParentKey()` 
 普通浏览和搜索只是两种不同的行来源：
 
 ```text
-普通浏览：当前键组.Children
+普通浏览：当前键组.LocalKeyToChild
 搜索模式：递归遍历当前键组的全部后代，然后筛选
 ```
 

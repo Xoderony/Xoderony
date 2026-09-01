@@ -1,0 +1,34 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>netstandard2.0</TargetFramework>
+    <RootNamespace>Xoderony.Localization.SourceGeneration</RootNamespace>
+    <AssemblyName>Xoderony.Localization.SourceGeneration</AssemblyName>
+    <PackageId>Xoderony.Localization.SourceGeneration</PackageId>
+    <IsPackable>true</IsPackable>
+    <IncludeBuildOutput>false</IncludeBuildOutput>
+    <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
+    <GeneratePackageOnBuild>false</GeneratePackageOnBuild>
+    <EnforceExtendedAnalyzerRules>true</EnforceExtendedAnalyzerRules>
+    <Description>Incremental source generator for Xoderony.Localization JSON string table keys.</Description>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <TargetsForTfmSpecificContentInPackage>$(TargetsForTfmSpecificContentInPackage);IncludeAnalyzerFiles</TargetsForTfmSpecificContentInPackage>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="Microsoft.CodeAnalysis.CSharp" Version="4.14.0" PrivateAssets="all" />
+    <PackageReference Include="System.Text.Json" Version="10.0.11" PrivateAssets="all" />
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Include="..\..\unity\io.github.xoderony.localization\Runtime\Tooling\StringTableKeyGenerator.cs" Link="Tooling\StringTableKeyGenerator.cs" />
+    <AdditionalFiles Include="AnalyzerReleases.Shipped.md" />
+    <AdditionalFiles Include="AnalyzerReleases.Unshipped.md" />
+    <None Include="README.md" Pack="true" PackagePath="" />
+    <None Include="buildTransitive\Xoderony.Localization.SourceGeneration.props" Pack="true" PackagePath="buildTransitive\" />
+    <None Include="buildTransitive\Xoderony.Localization.SourceGeneration.targets" Pack="true" PackagePath="buildTransitive\" />
+  </ItemGroup>
+  <Target Name="IncludeAnalyzerFiles">
+    <ItemGroup>
+      <TfmSpecificPackageFile Include="$(TargetPath)" PackagePath="analyzers/dotnet/cs" />
+      <TfmSpecificPackageFile Include="@(ReferenceCopyLocalPaths)" PackagePath="analyzers/dotnet/cs" Condition="'%(ReferenceCopyLocalPaths.Filename)' != 'Microsoft.CodeAnalysis' And '%(ReferenceCopyLocalPaths.Filename)' != 'Microsoft.CodeAnalysis.CSharp'" />
+    </ItemGroup>
+  </Target>
+</Project>

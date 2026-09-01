@@ -8,7 +8,7 @@ namespace Xoderony.Localization;
 
 public sealed class StringLocalizerBuilder {
 
-    private readonly Dictionary<string, string> _localizedStringByKey = new(StringComparer.Ordinal);
+    private readonly Dictionary<string, string> _keyToLocalizedString = new(StringComparer.Ordinal);
     private readonly CultureInfo _culture;
 
     public CultureInfo Culture => _culture;
@@ -25,7 +25,7 @@ public sealed class StringLocalizerBuilder {
     public void AddLayer(IEnumerable<KeyValuePair<string, string>> localizedStrings) {
         Debug.Assert(localizedStrings is not null);
 
-        var layer = new Dictionary<string, string>(StringComparer.Ordinal);
+        var layerKeyToLocalizedString = new Dictionary<string, string>(StringComparer.Ordinal);
         foreach (var entry in localizedStrings) {
             var key = entry.Key;
             var value = entry.Value;
@@ -35,18 +35,18 @@ public sealed class StringLocalizerBuilder {
             if (value is null) {
                 throw new ArgumentException("A localized string cannot be null.", nameof(localizedStrings));
             }
-            if (!layer.TryAdd(key, value)) {
+            if (!layerKeyToLocalizedString.TryAdd(key, value)) {
                 throw new ArgumentException($"Duplicate localization key '{key}'.", nameof(localizedStrings));
             }
         }
 
-        foreach (var entry in layer) {
-            _localizedStringByKey[entry.Key] = entry.Value;
+        foreach (var entry in layerKeyToLocalizedString) {
+            _keyToLocalizedString[entry.Key] = entry.Value;
         }
     }
 
     public StringLocalizer Build() {
-        var localizedStringByKey = _localizedStringByKey.ToFrozenDictionary(StringComparer.Ordinal);
-        return new StringLocalizer(_culture, localizedStringByKey);
+        var keyToLocalizedString = _keyToLocalizedString.ToFrozenDictionary(StringComparer.Ordinal);
+        return new StringLocalizer(_culture, keyToLocalizedString);
     }
 }

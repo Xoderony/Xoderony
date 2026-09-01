@@ -71,20 +71,19 @@ public abstract class JsonStringTableNode {
 
 public sealed class JsonStringTableGroup : JsonStringTableNode {
 
-    private readonly SortedDictionary<string, JsonStringTableNode> _childByLocalKey = new(StringComparer.Ordinal);
+    private readonly SortedDictionary<string, JsonStringTableNode> _localKeyToChild = new(StringComparer.Ordinal);
 
     internal JsonStringTableGroup(string localKey, string fullKey) : base(localKey, fullKey) {
     }
 
-    public IReadOnlyDictionary<string, JsonStringTableNode> Children => _childByLocalKey;
+    public IReadOnlyDictionary<string, JsonStringTableNode> LocalKeyToChild => _localKeyToChild;
 
     public bool TryGet(string relativeKey, [NotNullWhen(true)] out JsonStringTableNode? node) {
         Debug.Assert(!string.IsNullOrWhiteSpace(relativeKey));
-
         var current = this;
         var localKeys = relativeKey.Split('.');
         for (var index = 0; index < localKeys.Length; index++) {
-            if (!current._childByLocalKey.TryGetValue(localKeys[index], out var child)) {
+            if (!current._localKeyToChild.TryGetValue(localKeys[index], out var child)) {
                 node = null;
                 return false;
             }
@@ -118,56 +117,38 @@ public sealed class JsonStringTableGroup : JsonStringTableNode {
         if (relativeKey.Length == 0) {
             return this;
         }
-
         if (Get(relativeKey) is not JsonStringTableGroup group) {
             throw new ArgumentException($"The localization path '{relativeKey}' is not a group.", nameof(relativeKey));
         }
-
         return group;
     }
 
-    public IEnumerable<string> GetDescendantKeys() {
-        foreach (var child in _childByLocalKey.Values) {
+    public IEnumerable<string> GetDescendantEntryKeys() {
+        foreach (var child in _localKeyToChild.Values) {
             switch (child) {
                 case JsonStringTableEntry entry:
                     yield return entry.FullKey;
                     break;
                 case JsonStringTableGroup group:
-                    foreach (var key in group.GetDescendantKeys()) {
+                    foreach (var key in group.GetDescendantEntryKeys()) {
                         yield return key;
                     }
-
                     break;
             }
         }
     }
 
-    internal JsonStringTableGroup GetOrAddGroup(string localKey) {
-        if (_childByLocalKey.TryGetValue(localKey, out var child)) {
-            if (child is JsonStringTableGroup group) {
-                return group;
-            }
-
-            throw new InvalidDataException($"The localization path '{CombineKey(FullKey, localKey)}' is used as both a group and an entry.");
-        }
-
-        var created = new JsonStringTableGroup(localKey, CombineKey(FullKey, localKey));
-        _childByLocalKey.Add(localKey, created);
-        return created;
+    internal JsonStringTableGroup AddGroup(string localKey) {
+        var fullKey = CombineKey(FullKey, localKey);
+        var group = new JsonStringTableGroup(localKey, fullKey);
+        _localKeyToChild.Add(localKey, group);
+        return group;
     }
 
-    internal JsonStringTableEntry GetOrAddEntry(string localKey) {
-        if (_childByLocalKey.TryGetValue(localKey, out var child)) {
-            if (child is JsonStringTableEntry entry) {
-                return entry;
-            }
-
-            throw new InvalidDataException($"The localization path '{CombineKey(FullKey, localKey)}' is used as both a group and an entry.");
-        }
-
-        var created = new JsonStringTableEntry(localKey, CombineKey(FullKey, localKey));
-        _childByLocalKey.Add(localKey, created);
-        return created;
+    internal void AddEntry(string localKey) {
+        var fullKey = CombineKey(FullKey, localKey);
+        var entry = new JsonStringTableEntry(localKey, fullKey);
+        _localKeyToChild.Add(localKey, entry);
     }
 }
 
