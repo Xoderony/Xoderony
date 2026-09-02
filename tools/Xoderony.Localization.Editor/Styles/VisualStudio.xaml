@@ -54,6 +54,12 @@
     <Setter Property="FontWeight" Value="SemiBold" />
   </Style>
 
+  <Style x:Key="TranslationCellTextStyle" TargetType="{x:Type TextBlock}">
+    <Setter Property="Margin" Value="10,0" />
+    <Setter Property="VerticalAlignment" Value="Center" />
+    <Setter Property="TextTrimming" Value="CharacterEllipsis" />
+  </Style>
+
   <Style TargetType="{x:Type Button}">
     <Setter Property="Background" Value="{DynamicResource VsSurfaceBrush}" />
     <Setter Property="BorderBrush" Value="{DynamicResource VsBorderBrush}" />

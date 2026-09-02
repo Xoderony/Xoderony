@@ -2,6 +2,7 @@
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:local="clr-namespace:Xoderony.Localization.Editor"
+        Title="{Binding [window.title]}"
         Style="{StaticResource EditorWindowStyle}"
         Width="1280"
         Height="800"
@@ -35,7 +36,6 @@
       <RowDefinition Height="Auto" />
       <RowDefinition Height="Auto" />
       <RowDefinition Height="*" />
-      <RowDefinition Height="Auto" />
     </Grid.RowDefinitions>
 
     <Border Grid.Row="0"
@@ -45,79 +45,16 @@
             Padding="8,6">
       <WrapPanel Orientation="Horizontal">
         <StackPanel Orientation="Horizontal" Margin="0,0,10,0">
-          <Button Style="{StaticResource ToolbarButtonStyle}"
-                  Click="OpenDirectory"
-                  ToolTip="{Binding [toolbar.open_tooltip]}">
-            <StackPanel Orientation="Horizontal">
-              <TextBlock Text="&#xE8E5;" Style="{StaticResource ToolbarIconTextStyle}" />
-              <TextBlock Text="{Binding [toolbar.open]}" />
-            </StackPanel>
-          </Button>
-          <Button x:Name="SaveButton"
+          <Button x:Name="ProjectMenuButton"
                   Style="{StaticResource ToolbarButtonStyle}"
-                  Click="Save"
-                  ToolTip="{Binding [toolbar.save_tooltip]}">
+                  Click="OpenProjectMenu">
             <StackPanel Orientation="Horizontal">
-              <TextBlock Text="&#xE74E;" Style="{StaticResource ToolbarIconTextStyle}" />
-              <TextBlock Text="{Binding [toolbar.save]}" />
+              <TextBlock Text="&#xE713;" Style="{StaticResource ToolbarIconTextStyle}" />
+              <TextBlock Text="{Binding [toolbar.project]}" />
             </StackPanel>
-          </Button>
-          <Button x:Name="GenerateKeysButton"
-                  Style="{StaticResource ToolbarButtonStyle}"
-                  Click="GenerateKeys"
-                  ToolTip="{Binding [toolbar.generate_keys_tooltip]}">
-            <StackPanel Orientation="Horizontal">
-              <TextBlock Text="&#xE943;" Style="{StaticResource ToolbarIconTextStyle}" />
-              <TextBlock Text="{Binding [toolbar.generate_keys]}" />
-            </StackPanel>
-          </Button>
-        </StackPanel>
-
-        <StackPanel Orientation="Horizontal" Margin="0,0,10,0">
-          <Button x:Name="AddGroupButton" Style="{StaticResource ToolbarButtonStyle}" Click="AddGroup" ToolTip="{Binding [toolbar.add_group_tooltip]}">
-            <StackPanel Orientation="Horizontal">
-              <TextBlock Text="&#xE8F4;" Style="{StaticResource ToolbarIconTextStyle}" />
-              <TextBlock Text="{Binding [toolbar.add_group]}" />
-            </StackPanel>
-          </Button>
-          <Button x:Name="AddEntryButton" Style="{StaticResource ToolbarButtonStyle}" Click="AddEntry" ToolTip="{Binding [toolbar.add_entry_tooltip]}">
-            <StackPanel Orientation="Horizontal">
-              <TextBlock Text="&#xE710;" Style="{StaticResource ToolbarIconTextStyle}" />
-              <TextBlock Text="{Binding [toolbar.add_entry]}" />
-            </StackPanel>
-          </Button>
-          <Button x:Name="AddLocaleButton" Style="{StaticResource ToolbarButtonStyle}" Click="AddLocale" ToolTip="{Binding [toolbar.add_locale_tooltip]}">
-            <StackPanel Orientation="Horizontal">
-              <TextBlock Text="&#xE909;" Style="{StaticResource ToolbarIconTextStyle}" />
-              <TextBlock Text="{Binding [toolbar.add_locale]}" />
-            </StackPanel>
-          </Button>
-        </StackPanel>
-
-        <StackPanel Orientation="Horizontal">
-          <Button x:Name="RenameButton" Style="{StaticResource ToolbarButtonStyle}" Click="Rename" ToolTip="{Binding [toolbar.rename_tooltip]}">
-            <StackPanel Orientation="Horizontal">
-              <TextBlock Text="&#xE8AC;" Style="{StaticResource ToolbarIconTextStyle}" />
-              <TextBlock Text="{Binding [toolbar.rename]}" />
-            </StackPanel>
-          </Button>
-          <Button x:Name="MoveButton" Style="{StaticResource ToolbarButtonStyle}" Click="MoveSelection" ToolTip="{Binding [toolbar.move_tooltip]}">
-            <StackPanel Orientation="Horizontal">
-              <TextBlock Text="&#xE8DE;" Style="{StaticResource ToolbarIconTextStyle}" />
-              <TextBlock Text="{Binding [toolbar.move]}" />
-            </StackPanel>
-          </Button>
-          <Button x:Name="CopyButton" Style="{StaticResource ToolbarButtonStyle}" Click="CopyToSelection" ToolTip="{Binding [toolbar.copy_tooltip]}">
-            <StackPanel Orientation="Horizontal">
-              <TextBlock Text="&#xE8C8;" Style="{StaticResource ToolbarIconTextStyle}" />
-              <TextBlock Text="{Binding [toolbar.copy]}" />
-            </StackPanel>
-          </Button>
-          <Button x:Name="RemoveButton" Style="{StaticResource DangerToolbarButtonStyle}" Click="Remove" ToolTip="{Binding [toolbar.remove_tooltip]}">
-            <StackPanel Orientation="Horizontal">
-              <TextBlock Text="&#xE74D;" Style="{StaticResource ToolbarIconTextStyle}" />
-              <TextBlock Text="{Binding [toolbar.remove]}" />
-            </StackPanel>
+            <Button.ContextMenu>
+              <ContextMenu Opened="PopulateProjectMenu" />
+            </Button.ContextMenu>
           </Button>
         </StackPanel>
 
@@ -215,74 +152,158 @@
     </Border>
 
     <Grid Grid.Row="2" Background="{DynamicResource VsSurfaceBrush}">
-      <DataGrid x:Name="TableGrid"
-                Margin="10"
-                AutoGenerateColumns="False"
-                CanUserAddRows="False"
-                CanUserDeleteRows="False"
-                CanUserReorderColumns="True"
-                CanUserResizeColumns="True"
-                CanUserSortColumns="False"
-                FrozenColumnCount="1"
-                IsReadOnly="True"
-                SelectionChanged="SelectionChanged"
-                MouseDoubleClick="HandleCellDoubleClick"
-                PreviewMouseRightButtonDown="SelectRowOnRightClick">
-        <DataGrid.ContextMenu>
-          <ContextMenu>
-            <MenuItem Header="{Binding [context.add_group]}" Click="AddGroup" />
-            <MenuItem Header="{Binding [context.add_entry]}" Click="AddEntry" />
-            <MenuItem Header="{Binding [context.add_locale]}" Click="AddLocale" />
-            <Separator />
-            <MenuItem x:Name="RenameMenuItem" Header="{Binding [context.rename]}" InputGestureText="F2" Click="Rename" />
-            <MenuItem x:Name="MoveMenuItem" Header="{Binding [context.move]}" Click="MoveSelection" />
-            <MenuItem x:Name="CopyToMenuItem" Header="{Binding [context.copy_to]}" Click="CopyToSelection" />
-            <Separator />
-            <MenuItem x:Name="CopyMenuItem" Header="{Binding [context.copy]}" InputGestureText="Ctrl+C" Click="ClipboardCopy" />
-            <MenuItem x:Name="CutMenuItem" Header="{Binding [context.cut]}" InputGestureText="Ctrl+X" Click="ClipboardCut" />
-            <MenuItem x:Name="PasteMenuItem" Header="{Binding [context.paste]}" InputGestureText="Ctrl+V" Click="ClipboardPaste" />
-            <Separator />
-            <MenuItem Header="{Binding [context.remove]}" InputGestureText="Delete" Foreground="{DynamicResource VsDangerBrush}" Click="Remove" />
-          </ContextMenu>
-        </DataGrid.ContextMenu>
-      </DataGrid>
+      <Grid.RowDefinitions>
+        <RowDefinition Height="*" />
+        <RowDefinition Height="Auto" />
+        <RowDefinition x:Name="ValidationPanelRow" Height="0" />
+      </Grid.RowDefinitions>
 
-      <Border x:Name="EmptyState"
-              Margin="10"
+      <Grid Grid.Row="0">
+        <DataGrid x:Name="TableGrid"
+                  Margin="10"
+                  AutoGenerateColumns="False"
+                  CanUserAddRows="False"
+                  CanUserDeleteRows="False"
+                  CanUserReorderColumns="True"
+                  CanUserResizeColumns="True"
+                  CanUserSortColumns="False"
+                  FrozenColumnCount="1"
+                  IsReadOnly="True"
+                  Visibility="Collapsed"
+                  MouseDoubleClick="HandleCellDoubleClick"
+                  PreviewMouseRightButtonDown="SelectRowOnRightClick">
+          <DataGrid.ContextMenu>
+            <ContextMenu Opened="PopulateTableContextMenu" />
+          </DataGrid.ContextMenu>
+        </DataGrid>
+
+        <Border x:Name="EmptyState"
+                Margin="10"
+                Background="{DynamicResource VsSurfaceBrush}"
+                BorderBrush="{DynamicResource VsBorderBrush}"
+                BorderThickness="1">
+          <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
+            <TextBlock Text="&#xE8E5;"
+                       Style="{StaticResource EmptyStateIconTextStyle}"
+                       Foreground="{DynamicResource VsAccentBrush}"
+                       HorizontalAlignment="Center"
+                       Margin="0,0,0,14" />
+            <TextBlock Text="{Binding [empty_state.title]}" Style="{StaticResource EmptyStateTitleTextStyle}" HorizontalAlignment="Center" />
+            <TextBlock Text="{Binding [empty_state.description]}"
+                       Foreground="{DynamicResource VsMutedTextBrush}"
+                       HorizontalAlignment="Center"
+                       Margin="0,6,0,18" />
+            <Button Click="OpenDirectory" Padding="18,7" Content="{Binding [empty_state.select_directory]}" />
+          </StackPanel>
+        </Border>
+      </Grid>
+
+      <GridSplitter x:Name="ValidationGridSplitter"
+                    Grid.Row="1"
+                    Height="5"
+                    HorizontalAlignment="Stretch"
+                    Background="{DynamicResource VsBorderBrush}"
+                    ResizeDirection="Rows"
+                    ResizeBehavior="PreviousAndNext"
+                    Visibility="Collapsed" />
+
+      <Border x:Name="ValidationPanel"
+              Grid.Row="2"
+              Margin="10,0,10,10"
               Background="{DynamicResource VsSurfaceBrush}"
               BorderBrush="{DynamicResource VsBorderBrush}"
-              BorderThickness="1">
-        <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
-          <TextBlock Text="&#xE8E5;"
-                     Style="{StaticResource EmptyStateIconTextStyle}"
-                     Foreground="{DynamicResource VsAccentBrush}"
-                     HorizontalAlignment="Center"
-                     Margin="0,0,0,14" />
-          <TextBlock Text="{Binding [empty_state.title]}" Style="{StaticResource EmptyStateTitleTextStyle}" HorizontalAlignment="Center" />
-          <TextBlock Text="{Binding [empty_state.description]}"
-                     Foreground="{DynamicResource VsMutedTextBrush}"
-                     HorizontalAlignment="Center"
-                     Margin="0,6,0,18" />
-          <Button Click="OpenDirectory" Padding="18,7" Content="{Binding [empty_state.select_directory]}" />
-        </StackPanel>
+              BorderThickness="1"
+              Visibility="Collapsed">
+        <Grid>
+          <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+          </Grid.RowDefinitions>
+          <Border Grid.Row="0"
+                  Background="{DynamicResource VsToolbarBrush}"
+                  BorderBrush="{DynamicResource VsBorderBrush}"
+                  BorderThickness="0,0,0,1"
+                  Padding="10,6">
+            <Grid>
+              <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+              </Grid.RowDefinitions>
+              <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
+              </Grid.ColumnDefinitions>
+              <StackPanel Grid.Row="0" Grid.Column="0">
+                <TextBlock x:Name="ValidationSummaryText" FontWeight="SemiBold" VerticalAlignment="Center" />
+                <TextBlock x:Name="ValidationCompletionText"
+                           Margin="0,3,12,0"
+                           Foreground="{DynamicResource VsMutedTextBrush}"
+                           TextWrapping="Wrap" />
+              </StackPanel>
+              <Button Grid.Column="1"
+                      Grid.Row="0"
+                      Width="26"
+                      Height="26"
+                      Padding="0"
+                      Style="{StaticResource ToolbarButtonStyle}"
+                      Click="CloseValidationPanel"
+                      ToolTip="{Binding [validation.close_tooltip]}">
+                <TextBlock Text="&#xE711;" Style="{StaticResource SmallIconTextStyle}" />
+              </Button>
+              <WrapPanel Grid.Row="1" Grid.ColumnSpan="2" Margin="0,8,0,0">
+                <StackPanel Orientation="Horizontal" Margin="0,0,16,0" VerticalAlignment="Center">
+                  <TextBlock Text="{Binding [validation.filter_kind_label]}" Margin="0,0,7,0" VerticalAlignment="Center" />
+                  <ComboBox x:Name="ValidationKindFilterComboBox"
+                            Width="190"
+                            SelectionChanged="ValidationFilterChanged" />
+                </StackPanel>
+                <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                  <TextBlock Text="{Binding [validation.filter_locale_label]}" Margin="0,0,7,0" VerticalAlignment="Center" />
+                  <ComboBox x:Name="ValidationLocaleFilterComboBox"
+                            Width="180"
+                            SelectionChanged="ValidationFilterChanged" />
+                </StackPanel>
+              </WrapPanel>
+            </Grid>
+          </Border>
+          <Grid Grid.Row="1">
+            <DataGrid x:Name="ValidationGrid"
+                      AutoGenerateColumns="False"
+                      CanUserAddRows="False"
+                      CanUserDeleteRows="False"
+                      CanUserReorderColumns="False"
+                      CanUserResizeColumns="True"
+                      CanUserSortColumns="False"
+                      IsReadOnly="True"
+                      MouseDoubleClick="NavigateToValidationIssue">
+              <DataGrid.Columns>
+                <DataGridTextColumn Binding="{Binding KindText}" Width="180" MinWidth="130">
+                  <DataGridTextColumn.Header>
+                    <TextBlock Text="{Binding [validation.column_kind]}" />
+                  </DataGridTextColumn.Header>
+                </DataGridTextColumn>
+                <DataGridTextColumn Binding="{Binding EntryKey}" Width="*" MinWidth="220">
+                  <DataGridTextColumn.Header>
+                    <TextBlock Text="{Binding [validation.column_key]}" />
+                  </DataGridTextColumn.Header>
+                </DataGridTextColumn>
+                <DataGridTextColumn Binding="{Binding CultureName}" Width="180" MinWidth="120">
+                  <DataGridTextColumn.Header>
+                    <TextBlock Text="{Binding [validation.column_locale]}" />
+                  </DataGridTextColumn.Header>
+                </DataGridTextColumn>
+              </DataGrid.Columns>
+            </DataGrid>
+            <TextBlock x:Name="ValidationEmptyText"
+                       Text="{Binding [validation.no_issues]}"
+                       Foreground="{DynamicResource VsMutedTextBrush}"
+                       HorizontalAlignment="Center"
+                       VerticalAlignment="Center"
+                       Visibility="Collapsed" />
+          </Grid>
+        </Grid>
       </Border>
     </Grid>
 
-    <Border Grid.Row="3" Background="{DynamicResource VsAccentBrush}" Padding="10,5">
-      <Grid>
-        <Grid.ColumnDefinitions>
-          <ColumnDefinition Width="*" />
-          <ColumnDefinition Width="Auto" />
-        </Grid.ColumnDefinitions>
-        <TextBlock x:Name="StatusText"
-                   Grid.Column="0"
-                   Foreground="White"
-                   TextTrimming="CharacterEllipsis" />
-        <TextBlock x:Name="SummaryText"
-                   Grid.Column="1"
-                   Margin="16,0,0,0"
-                   Foreground="#DDEEFF" />
-      </Grid>
-    </Border>
   </Grid>
 </Window>

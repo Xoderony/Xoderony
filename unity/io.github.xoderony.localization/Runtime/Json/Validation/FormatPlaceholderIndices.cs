@@ -4,8 +4,8 @@ namespace Xoderony.Localization.Json;
 
 internal static class FormatPlaceholderIndices {
 
-    public static SortedSet<int> Collect(string format) {
-        var indices = new SortedSet<int>();
+    public static bool TryCollect(string format, out SortedSet<int> indices) {
+        indices = [];
         for (var index = 0; index < format.Length; index++) {
             var character = format[index];
             if (character == '{') {
@@ -14,8 +14,8 @@ internal static class FormatPlaceholderIndices {
                     continue;
                 }
 
-                if (!TryReadPlaceholderIndex(format, index + 1, out var placeholderIndex, out var endIndex)) {
-                    continue;
+                if (!TryReadPlaceholder(format, index + 1, out var placeholderIndex, out var endIndex)) {
+                    return false;
                 }
 
                 indices.Add(placeholderIndex);
@@ -23,15 +23,19 @@ internal static class FormatPlaceholderIndices {
                 continue;
             }
 
-            if (character == '}' && index + 1 < format.Length && format[index + 1] == '}') {
+            if (character == '}') {
+                if (index + 1 >= format.Length || format[index + 1] != '}') {
+                    return false;
+                }
+
                 index++;
             }
         }
 
-        return indices;
+        return true;
     }
 
-    private static bool TryReadPlaceholderIndex(string format, int startIndex, out int placeholderIndex, out int endIndex) {
+    private static bool TryReadPlaceholder(string format, int startIndex, out int placeholderIndex, out int endIndex) {
         placeholderIndex = 0;
         endIndex = startIndex;
         if (startIndex >= format.Length || format[startIndex] is < '0' or > '9') {
@@ -41,30 +45,73 @@ internal static class FormatPlaceholderIndices {
         var value = 0;
         var index = startIndex;
         while (index < format.Length && format[index] is >= '0' and <= '9') {
-            value = (value * 10) + (format[index] - '0');
-            index++;
-        }
-
-        while (index < format.Length) {
-            var character = format[index];
-            if (character == '}') {
-                placeholderIndex = value;
-                endIndex = index;
-                return true;
-            }
-
-            if (character is ',' or ':') {
-                index++;
-                continue;
-            }
-
-            if (character == '{') {
+            var digit = format[index] - '0';
+            if (value > (int.MaxValue - digit) / 10) {
                 return false;
             }
 
+            value = (value * 10) + digit;
             index++;
         }
 
-        return false;
+        SkipSpaces(format, ref index);
+        if (index < format.Length && format[index] == ',') {
+            index++;
+            SkipSpaces(format, ref index);
+            if (index < format.Length && format[index] == '-') {
+                index++;
+            }
+
+            if (index >= format.Length || format[index] is < '0' or > '9') {
+                return false;
+            }
+
+            var alignment = 0;
+            while (index < format.Length && format[index] is >= '0' and <= '9') {
+                var digit = format[index] - '0';
+                if (alignment > (int.MaxValue - digit) / 10) {
+                    return false;
+                }
+
+                alignment = (alignment * 10) + digit;
+                index++;
+            }
+
+            SkipSpaces(format, ref index);
+        }
+
+        if (index < format.Length && format[index] == ':') {
+            index++;
+            while (index < format.Length) {
+                var character = format[index];
+                if (character == '{') {
+                    return false;
+                }
+
+                if (character == '}') {
+                    placeholderIndex = value;
+                    endIndex = index;
+                    return true;
+                }
+
+                index++;
+            }
+
+            return false;
+        }
+
+        if (index >= format.Length || format[index] != '}') {
+            return false;
+        }
+
+        placeholderIndex = value;
+        endIndex = index;
+        return true;
+
+        static void SkipSpaces(string text, ref int position) {
+            while (position < text.Length && text[position] == ' ') {
+                position++;
+            }
+        }
     }
 }

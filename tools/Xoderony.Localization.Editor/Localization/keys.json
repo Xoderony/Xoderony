@@ -1,8 +1,9 @@
 {
+  "aaaaaaaaaaaaaaa": null,
   "context": {
+    "add_entry": null,
     "add_group": null,
     "add_locale": null,
-    "add_entry": null,
     "copy": null,
     "copy_to": null,
     "cut": null,
@@ -12,12 +13,12 @@
     "rename": null
   },
   "dialog": {
+    "add_entry_message": null,
+    "add_entry_title": null,
     "add_group_message": null,
     "add_group_title": null,
     "add_locale_message": null,
     "add_locale_title": null,
-    "add_entry_message": null,
-    "add_entry_title": null,
     "cancel": null,
     "confirm": null,
     "copy_confirm": null,
@@ -67,42 +68,43 @@
     "clear_tooltip": null,
     "placeholder": null
   },
-  "status": {
-    "generated_keys": null,
-    "saved": null,
-    "summary": null,
-    "unopened": null,
-    "unsaved": null
-  },
   "theme": {
     "dark": null,
     "label": null,
     "light": null
   },
   "toolbar": {
-    "add_group": null,
-    "add_group_tooltip": null,
-    "add_locale": null,
-    "add_locale_tooltip": null,
-    "add_entry": null,
-    "add_entry_tooltip": null,
-    "copy": null,
-    "copy_tooltip": null,
     "generate_keys": null,
-    "generate_keys_tooltip": null,
-    "move": null,
-    "move_tooltip": null,
     "open": null,
-    "open_tooltip": null,
-    "remove": null,
-    "remove_tooltip": null,
-    "rename": null,
-    "rename_tooltip": null,
-    "save": null,
-    "save_tooltip": null
+    "project": null,
+    "save": null
+  },
+  "validation": {
+    "cannot_navigate": null,
+    "cannot_navigate_title": null,
+    "close_tooltip": null,
+    "column_key": null,
+    "column_kind": null,
+    "column_locale": null,
+    "completion": null,
+    "completion_item": null,
+    "filter_all": null,
+    "filter_kind_label": null,
+    "filter_locale_label": null,
+    "kind_invalid_format_string": null,
+    "kind_missing_translation": null,
+    "kind_placeholder_mismatch": null,
+    "kind_unexpected_translation_key": null,
+    "no_issues": null,
+    "no_matching_issues": null,
+    "reference_dialog_message": null,
+    "reference_dialog_title": null,
+    "reference_locale": null,
+    "run": null,
+    "summary": null
   },
   "window": {
-    "title": null,
-    "title_with_directory": null
+    "ccc": null,
+    "title": null
   }
 }

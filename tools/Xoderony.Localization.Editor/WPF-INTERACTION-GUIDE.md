@@ -8,7 +8,8 @@
 - [`App.xaml`](./App.xaml)：应用入口、启动窗口和全局资源。
 - [`App.xaml.cs`](./App.xaml.cs)：`Application` 的代码后置类。
 - [`MainWindow.xaml`](./MainWindow.xaml)：主窗口控件树、布局、模板和事件绑定。
-- [`MainWindow.xaml.cs`](./MainWindow.xaml.cs)：主窗口状态与全部交互逻辑。
+- [`MainWindow.xaml.cs`](./MainWindow.xaml.cs)：主窗口状态与交互协调逻辑。
+- [`TranslationEditDialog.xaml`](./TranslationEditDialog.xaml) 与 [`TranslationEditDialog.xaml.cs`](./TranslationEditDialog.xaml.cs)：长文本译文编辑窗口。
 - [`EditorLocalizer.cs`](./EditorLocalizer.cs)：编辑器界面语言与核心本地化包之间的适配层。
 - [`EditorSettings.cs`](./EditorSettings.cs)：在程序根目录的 `settings.json` 中保存主题、界面语言、窗口尺寸和上次打开的语言表目录。
 - [`Localization`](./Localization)：编辑器自身使用的 JSON 界面语言表。
@@ -32,7 +33,7 @@ MainWindow.xaml
   │  RoutedEvent / Binding
   ▼
 MainWindow.xaml.cs
-窗口状态、导航、搜索、编辑提交、命令启用状态
+窗口状态、导航、搜索、编辑提交、动态菜单
   │  调用公开 API
   ▼
 用户 JsonLocaleTableCollection
@@ -85,41 +86,39 @@ public partial class MainWindow : Window {
 }
 ```
 
-构造函数中的 `InitializeComponent()` 会加载编译后的 XAML、创建控件树、应用资源，并把带有 `x:Name` 的控件连接到生成字段。必须先调用它，后续代码才能访问 `TableGrid`、`SearchTextBox`、`SaveButton` 等控件。
+构造函数中的 `InitializeComponent()` 会加载编译后的 XAML、创建控件树、应用资源，并把带有 `x:Name` 的控件连接到生成字段。必须先调用它，后续代码才能访问 `TableGrid`、`SearchTextBox`、`ProjectMenuButton` 等控件。
 
 ## 3. XAML 可以理解成“声明式对象创建”
 
 XAML 不是图片或 HTML。它会被编译成创建 .NET 对象的代码。例如：
 
 ```xml
-<Button x:Name="SaveButton"
-        Click="Save"
-        ToolTip="{Binding [toolbar.save_tooltip]}" />
+<Button x:Name="ProjectMenuButton"
+        Click="OpenProjectMenu" />
 ```
 
 可以近似理解为：
 
 ```csharp
-var saveButton = new Button();
-saveButton.Click += Save;
+var projectMenuButton = new Button();
+projectMenuButton.Click += OpenProjectMenu;
 ```
 
 其中：
 
 - `Button` 是 `System.Windows.Controls.Button`。
-- `x:Name="SaveButton"` 让代码后置可以通过 `SaveButton` 访问该实例。
-- `Click="Save"` 把按钮点击事件连接到 `MainWindow.xaml.cs` 的 `Save` 方法。
-- `ToolTip`、`Margin`、`Padding`、`Visibility` 等都是控件属性。示例中的 ToolTip 通过绑定从 `EditorLocalizer` 读取当前界面语言。
+- `x:Name="ProjectMenuButton"` 让代码后置可以通过 `ProjectMenuButton` 访问该实例。
+- `Click="OpenProjectMenu"` 把按钮点击事件连接到 `MainWindow.xaml.cs` 的 `OpenProjectMenu` 方法。
+- `ToolTip`、`Margin`、`Padding`、`Visibility` 等都是控件属性。
 
 ### 当前主窗口的布局
 
-主 `Grid` 有四行：
+主 `Grid` 有三行：
 
 ```text
 Auto  顶部工具栏
 Auto  面包屑路径栏和搜索框
 *     DataGrid 主内容区，占用全部剩余空间
-Auto  底部状态栏
 ```
 
 WPF 常见布局容器的职责不同：
@@ -165,9 +164,9 @@ Style="{StaticResource ToolbarButtonStyle}"
 
 ```xml
 <TextBox TextChanged="SearchChanged" />
-<DataGrid BeginningEdit="BeginCellEdit"
-          CellEditEnding="EndCellEdit"
-          MouseDoubleClick="HandleCellDoubleClick" />
+<DataGrid MouseDoubleClick="HandleCellDoubleClick"
+          PreviewMouseRightButtonDown="SelectRowOnRightClick" />
+<ContextMenu Opened="PopulateTableContextMenu" />
 ```
 
 事件发生时，WPF 调用对应的 C# 方法。事件处理器通常接收：
@@ -200,7 +199,7 @@ Text="{Binding DisplayName}"
 主窗口本身的 `DataContext` 是 `EditorLocalizer`，所以工具栏中的：
 
 ```xml
-Text="{Binding [toolbar.open]}"
+Text="{Binding [toolbar.project]}"
 ```
 
 会调用本地化适配层的字符串索引器。切换界面语言后，`EditorLocalizer` 通过 `INotifyPropertyChanged` 通知这些绑定重新读取文本。
@@ -253,7 +252,7 @@ CultureNameToTranslation[en-US]
 
 名称列使用只读的 `DataGridTemplateColumn`，因为它需要组合节点类型图标和显示名称。
 
-Locale 列使用 `DataGridTextColumn`，因为它只需显示和编辑字符串，标准列实现更简单。
+Locale 列使用 `DataGridTextColumn`，因为它只需显示字符串，标准列实现更简单。
 
 ## 8. DataTemplate：名称单元格怎样显示
 
@@ -273,61 +272,44 @@ Locale 列使用 `DataGridTextColumn`，因为它只需显示和编辑字符串�
 6. 把列表赋给 `TableGrid.ItemsSource`。
 7. 恢复选择项、当前列和滚动位置。
 
-键组行的 Locale 值保持为空，而且 `BeginCellEdit()` 会禁止编辑键组行的 Locale 单元格。
+键组行的 Locale 值保持为空，双击键组行会进入对应键组。
 
 需要注意：给 `ItemsSource` 赋一个新列表会让 DataGrid 重新生成行容器。这是结构变化、导航和搜索时允许做的事情，但不能在单元格提交事务中随意执行。
 
 ## 10. 翻译编辑的完整流程
 
-以编辑 `zh-CN` 单元格并按 Enter 为例：
+以编辑 `zh-CN` 单元格为例：
 
 ```text
 用户双击翻译单元格
   ↓
 HandleCellDoubleClick
-  ↓ TableGrid.BeginEdit()
-BeginCellEdit
-  ↓ 允许字符串行的 Locale 列
-TextBox 进入编辑状态
-  ↓ 用户按 Enter、Tab 或点击其他单元格
-EndCellEdit
   ↓
-TryApplyValue
+EditTranslation
+  ↓ 创建并打开 TranslationEditDialog
+用户确认
   ├─ _tables.SetTranslation(culture, fullKey, translation)
-  ├─ row.CultureNameToTranslation[culture.Name] = value
-  └─ UpdateStatus()
+  ├─ row.CultureNameToTranslation[culture.Name] = translation
+  └─ TableGrid.Items.Refresh()
 ```
 
-这里刻意 **不调用 `RefreshRows()`**。原因是 `CellEditEnding` 发生在 DataGrid 自己的提交生命周期中；如果此时清空 `Columns` 或替换 `ItemsSource`，DataGrid 内部正在使用的行和单元格会突然失效，可能在 `UpdateRowEditing` 中抛出异常。
+这里刻意 **不调用 `RefreshRows()`**。译文修改没有改变键结构，只刷新现有行即可，选择和滚动位置不会被重建。
 
 普通翻译修改只更新：
 
 - JSON 数据层中的值。
 - 当前 `LocalizationRow.CultureNameToTranslation` 中对应的值。
-- 保存状态和底部摘要。
 
-这样 Enter、Tab、鼠标切换单元格和编辑状态下 `Ctrl+S` 都不会重建表格。
-
-### 为什么使用 Explicit
-
-Locale 列的绑定使用：
-
-```csharp
-Mode = BindingMode.TwoWay,
-UpdateSourceTrigger = UpdateSourceTrigger.Explicit
-```
-
-这表示 TextBox 输入期间不自动把每个字符写回字典。最终值由 `EndCellEdit()` 明确读取并提交，JSON 修改边界集中在 `TryApplyValue()`。
+`TranslationEditDialog` 拥有独立的布局、Ctrl+Enter 确认和 Esc 取消边界，不进入 DataGrid 的单元格编辑事务。`EditTranslation()` 只准备显示文本、读取确认结果并写回数据层。
 
 ## 11. 重命名为什么使用独立对话框
 
-名称列保持只读。F2、工具栏和右键菜单调用 `Rename()` 后执行：
+名称列保持只读。F2 或右键菜单调用 `Rename()` 后执行：
 
-1. 提交当前翻译单元格。
-2. 读取所选节点及其当前名称。
-3. 打开普通输入对话框。
-4. 用户确认后，通过 `ChangeStructure()` 调用 `_tables.Rename(...)`。
-5. 重建行并恢复到重命名后的节点。
+1. 读取所选节点及其当前名称。
+2. 打开普通输入对话框。
+3. 用户确认后，通过 `ChangeStructure()` 调用 `_tables.Rename(...)`。
+4. 重建行并恢复到重命名后的节点。
 
 重命名不再发生在 `CellEditEnding` 内，因此不需要重命名许可标记、延迟刷新字段或 `Dispatcher` 调度。双击键组仍然只负责进入该键组。
 
@@ -349,7 +331,7 @@ UpdateSourceTrigger = UpdateSourceTrigger.Explicit
 4. 清除搜索。
 5. 刷新当前键组的直接子项。
 
-`RefreshBreadcrumb()` 根据键段在 `BreadcrumbPanel` 中动态创建 Button。每个按钮的 `Tag` 保存该层级的完整键组路径，点击后由 `NavigateBreadcrumb()` 取出并交给 `NavigateToGroup()`。
+`RefreshBreadcrumb()` 通过局部函数根据键段在 `BreadcrumbPanel` 中动态创建 Button。按钮点击处理器直接捕获该层级的完整键组路径并交给 `NavigateToGroup()`，不再使用额外的 `Tag` 和成员事件处理器。
 
 Backspace 由窗口的 `OnPreviewKeyDown()` 捕获，并通过 `GetParentKey()` 返回父级。焦点位于 TextBox 时不会拦截，因此仍可正常删除文字。
 
@@ -368,22 +350,15 @@ Backspace 由窗口的 `OnPreviewKeyDown()` 捕获，并通过 `GetParentKey()` 
 
 清空搜索框后，`RefreshRows()` 再次走普通浏览分支，不需要保存或恢复树节点的展开状态。
 
-## 14. 工具栏、右键菜单和快捷键为什么会调用同一方法
+## 14. 项目菜单、右键菜单和快捷键如何协作
 
-例如重命名有三个入口：
+工具栏只保留始终可用的入口。项目菜单和表格右键菜单分别在 `PopulateProjectMenu()`、`PopulateTableContextMenu()` 中按当前状态生成，只添加此刻能够执行的操作，不维护灰显菜单项。
 
-- 工具栏按钮 `Click="Rename"`。
-- 右键菜单 `Click="Rename"`。
-- F2 在 `OnPreviewKeyDown()` 中调用 `Rename(...)`。
+例如重命名有两个入口：动态创建的右键菜单项，以及 F2 在 `OnPreviewKeyDown()` 中的快捷键处理。二者最终调用同一个 `Rename(...)` 方法，新增、删除、移动、复制和剪切也采用相同方式。
 
-它们最终进入同一个方法，避免不同入口产生不同规则。新增、删除、移动和复制也采用相同思路。
+项目菜单提供打开、保存、新增语言表和生成 C# 键。其中保存只在存在未保存更改时生成，其他操作也根据语言表状态出现。
 
-`SelectRowOnRightClick()` 会在右键菜单弹出前选中鼠标所在行，否则用户可能右键 A 行，操作却作用在之前选中的 B 行。
-
-`UpdateCommandState()` 集中设置按钮与菜单的 `IsEnabled`，例如：
-
-- 没有打开语言表时禁用保存、增加和搜索。
-- 没有选择行时禁用重命名、移动、复制和删除。
+`SelectRowOnRightClick()` 会在右键菜单弹出前选中鼠标所在行，否则用户可能右键 A 行，操作却作用在之前选中的 B 行。右键点击表格空白区域时会清除原选择，此时菜单只生成作用于当前键组的操作。
 
 ## 15. 复制、剪切、粘贴与移动
 
@@ -397,14 +372,13 @@ Backspace 由窗口的 `OnPreviewKeyDown()` 捕获，并通过 `GetParentKey()` 
 
 新增、复制、移动和删除都会改变节点结构，因此统一通过 `ChangeStructure()`：
 
-1. 提交正在编辑的单元格。
-2. 捕获当前选择、列和滚动位置。
-3. 执行传入的数据层操作。
-4. 必要时重建动态列。
-5. 刷新行并恢复界面状态。
-6. 把数据层参数错误显示为消息框。
+1. 捕获当前选择、列和滚动位置。
+2. 执行传入的数据层操作。
+3. 必要时重建动态列。
+4. 刷新行并恢复界面状态。
+5. 把数据层参数错误显示为消息框。
 
-这与 `TryApplyValue()` 的局部更新形成明确区别：
+这与 `EditTranslation()` 的局部更新形成明确区别：
 
 ```text
 仅翻译文字变化  → 不重建 DataGrid
@@ -425,15 +399,11 @@ JsonLocaleTableCollection.LoadDirectory(dialog.FolderName)
 - 保存目录路径。
 - 返回根键组。
 - 重建面包屑、Locale 列和行。
+- 隐藏空状态并显示表格。
 
-数据修改后，数据层的 `IsDirty` 变为 `true`。`UpdateStatus()` 据此更新：
+数据修改后，数据层的 `IsDirty` 变为 `true`。打开“项目”菜单时会实时读取它，只在存在未保存修改时生成“保存”菜单项。
 
-- 窗口标题后的 `*`。
-- 保存按钮启用状态。
-- 底部“有未保存更改”状态。
-- Locale、键和空值摘要。
-
-保存或关闭窗口前会调用 `CommitCurrentEdit()`，确保当前 TextBox 中尚未离开的内容先进入数据层。关闭窗口通过 `Closing="OnClosing"` 询问保存、放弃或取消关闭。
+关闭窗口通过 `Closing="OnClosing"` 检查 `IsDirty`，询问保存、放弃或取消关闭。
 
 ## 18. Visual Tree：为什么有 FindVisualParent/Child
 
@@ -463,14 +433,14 @@ WPF 控件会被模板展开为更细的可视元素。例如鼠标实际点击�
 |---|---|
 | 调整字体、控件模板、悬停和选择行为 | `Styles/VisualStudio.xaml` |
 | 调整浅色或深色配色 | `Styles/VisualStudioLight.xaml`、`Styles/VisualStudioDark.xaml` |
-| 调整工具栏、路径栏、搜索框或状态栏布局 | `MainWindow.xaml` |
+| 调整工具栏、路径栏或搜索框布局 | `MainWindow.xaml` |
 | 修改快捷键 | `OnPreviewKeyDown()` |
 | 修改双击和右键行为 | `HandleCellDoubleClick()`、`SelectRowOnRightClick()` |
 | 修改键组导航 | `NavigateToGroup()`、`RefreshBreadcrumb()` |
-| 修改搜索范围或匹配规则 | `RefreshRows()`、`AddSearchRows()`、`MatchesSearch()` |
-| 修改 DataGrid 固定列 | `CreateNameColumn()` |
-| 修改动态 Locale 列 | `RebuildColumns()`、`CreateValueColumn()` |
-| 修改翻译提交行为 | `BeginCellEdit()`、`EndCellEdit()`、`TryApplyValue()` |
+| 修改搜索范围或匹配规则 | `RefreshRows()` 及其局部函数 |
+| 修改 DataGrid 固定列 | `RebuildColumns()` 中的 `CreateNameColumn()` 局部函数 |
+| 修改动态 Locale 列 | `RebuildColumns()` 中的 `CreateValueColumn()` 局部函数 |
+| 修改翻译提交行为 | `HandleCellDoubleClick()`、`EditTranslation()`、`TranslationEditDialog` |
 | 修改重命名行为 | `Rename()`、`Prompt()`、`ChangeStructure()` |
 | 修改增删复制移动 | 对应事件方法与 `ChangeStructure()` |
 | 修改 JSON 契约或保存语义 | `JsonLocaleTableCollection`，而不是 XAML |
@@ -480,12 +450,12 @@ WPF 控件会被模板展开为更细的可视元素。例如鼠标实际点击�
 第一次阅读时不必从上到下逐行看。可以按以下顺序：
 
 1. `App.xaml`：找到程序入口和全局样式。
-2. `MainWindow.xaml`：只看四行总体布局和控件名称。
+2. `MainWindow.xaml`：只看三行总体布局和控件名称。
 3. `MainWindow.xaml.cs` 字段：理解窗口保存了哪些状态。
 4. `OpenDirectory()`、`RebuildColumns()`、`RefreshRows()`：理解数据如何首次出现在表格中。
-5. `HandleCellDoubleClick()`、`BeginCellEdit()`、`EndCellEdit()`：理解编辑生命周期。
-6. `TryApplyValue()` 与 `Rename()`：理解 UI 如何写回数据层。
-7. `NavigateToGroup()`、`RefreshBreadcrumb()`、`AddSearchRows()`：理解文件夹管理器式浏览。
+5. `HandleCellDoubleClick()`、`EditTranslation()` 与 `TranslationEditDialog`：理解译文编辑生命周期。
+6. `EditTranslation()` 与 `Rename()`：理解 UI 如何写回数据层。
+7. `NavigateToGroup()`、`RefreshBreadcrumb()`、`RefreshRows()` 的局部函数：理解文件夹管理器式浏览。
 8. `ChangeStructure()`：理解为什么结构操作和普通翻译编辑走不同刷新路径。
 9. 最后阅读 `VisualStudio.xaml` 与两个主题调色板：理解 WPF 样式、模板和动态颜色资源如何共同塑造视觉效果。
 

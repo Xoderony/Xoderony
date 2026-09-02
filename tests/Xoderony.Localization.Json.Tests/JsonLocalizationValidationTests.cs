@@ -107,6 +107,72 @@ public sealed class JsonLocalizationValidationTests {
         }
     }
 
+    [Theory]
+    [InlineData("Value: {")]
+    [InlineData("Value: }")]
+    [InlineData("Value: {name}")]
+    [InlineData("Value: {0,")]
+    [InlineData("Value: {0:{1}}")]
+    public void ValidateReportsInvalidFormatString(string translation) {
+        var directoryPath = CreateTempDirectory();
+        try {
+            WriteAllText(directoryPath, JsonLocaleTableCollection.KeysFileName, """
+                {
+                  "sample": null
+                }
+                """);
+            WriteAllText(directoryPath, "en-US.json", $$"""
+                {
+                  "sample": {{System.Text.Json.JsonSerializer.Serialize(translation)}}
+                }
+                """);
+            WriteAllText(directoryPath, "zh-CN.json", """
+                {
+                  "sample": "示例 {0}"
+                }
+                """);
+
+            var collection = JsonLocaleTableCollection.LoadDirectory(directoryPath);
+            var issues = JsonLocalizationValidation.Validate(collection, SimplifiedChinese);
+
+            var invalid = Assert.Single(issues);
+            Assert.Equal(JsonLocalizationIssueKind.InvalidFormatString, invalid.Kind);
+            Assert.Equal("sample", invalid.EntryKey);
+            Assert.Equal(English.Name, invalid.Culture.Name);
+        } finally {
+            Directory.Delete(directoryPath, recursive: true);
+        }
+    }
+
+    [Fact]
+    public void ValidateAcceptsAlignmentFormatAndEscapedBraces() {
+        var directoryPath = CreateTempDirectory();
+        try {
+            WriteAllText(directoryPath, JsonLocaleTableCollection.KeysFileName, """
+                {
+                  "sample": null
+                }
+                """);
+            WriteAllText(directoryPath, "en-US.json", """
+                {
+                  "sample": "Value: {{ {0,-10:N2} }}"
+                }
+                """);
+            WriteAllText(directoryPath, "zh-CN.json", """
+                {
+                  "sample": "值：{{ {0, 10:N2} }}"
+                }
+                """);
+
+            var collection = JsonLocaleTableCollection.LoadDirectory(directoryPath);
+            var issues = JsonLocalizationValidation.Validate(collection, English);
+
+            Assert.Empty(issues);
+        } finally {
+            Directory.Delete(directoryPath, recursive: true);
+        }
+    }
+
     [Fact]
     public void ValidateReportsUnexpectedTranslationKey() {
         var directoryPath = CreateTempDirectory();
@@ -135,6 +201,39 @@ public sealed class JsonLocalizationValidationTests {
             Assert.Equal(JsonLocalizationIssueKind.UnexpectedTranslationKey, unexpected.Kind);
             Assert.Equal("orphan.key", unexpected.EntryKey);
             Assert.Equal(English.Name, unexpected.Culture.Name);
+        } finally {
+            Directory.Delete(directoryPath, recursive: true);
+        }
+    }
+
+    [Fact]
+    public void ValidateEntryReportsOnlySelectedEntryIssues() {
+        var directoryPath = CreateTempDirectory();
+        try {
+            WriteAllText(directoryPath, JsonLocaleTableCollection.KeysFileName, """
+                {
+                  "menu": {
+                    "start": null,
+                    "quit": null
+                  }
+                }
+                """);
+            WriteAllText(directoryPath, "en-US.json", """
+                {
+                  "menu.start": "Start"
+                }
+                """);
+            WriteAllText(directoryPath, "zh-CN.json", """
+                {
+                  "menu.start": "开始",
+                  "menu.quit": "退出"
+                }
+                """);
+
+            var collection = JsonLocaleTableCollection.LoadDirectory(directoryPath);
+            var issues = JsonLocalizationValidation.ValidateEntry(collection, SimplifiedChinese, "menu.start");
+
+            Assert.Empty(issues);
         } finally {
             Directory.Delete(directoryPath, recursive: true);
         }

@@ -1,0 +1,56 @@
+<Window x:Class="Xoderony.Localization.Editor.TranslationEditDialog"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Style="{StaticResource EditorWindowStyle}"
+        Width="720"
+        Height="480"
+        MinWidth="480"
+        MinHeight="320"
+        ResizeMode="CanResizeWithGrip"
+        ShowInTaskbar="False"
+        WindowStartupLocation="CenterOwner"
+        UseLayoutRounding="True"
+        SnapsToDevicePixels="True"
+        Loaded="OnLoaded"
+        PreviewKeyDown="OnPreviewKeyDown">
+  <Grid Margin="16">
+    <Grid.RowDefinitions>
+      <RowDefinition Height="Auto" />
+      <RowDefinition Height="Auto" />
+      <RowDefinition Height="*" />
+      <RowDefinition Height="Auto" />
+    </Grid.RowDefinitions>
+
+    <TextBlock x:Name="KeyText" TextTrimming="CharacterEllipsis" />
+
+    <TextBlock x:Name="LocaleText"
+               Grid.Row="1"
+               Margin="0,4,0,10"
+               Foreground="{DynamicResource VsMutedTextBrush}" />
+
+    <TextBox x:Name="TranslationTextBox"
+             Grid.Row="2"
+             AcceptsReturn="True"
+             AcceptsTab="True"
+             TextWrapping="Wrap"
+             VerticalContentAlignment="Top"
+             VerticalScrollBarVisibility="Auto"
+             HorizontalScrollBarVisibility="Disabled" />
+
+    <Grid Grid.Row="3" Margin="0,12,0,0">
+      <Grid.ColumnDefinitions>
+        <ColumnDefinition Width="*" />
+        <ColumnDefinition Width="Auto" />
+      </Grid.ColumnDefinitions>
+
+      <TextBlock x:Name="ShortcutText"
+                 Foreground="{DynamicResource VsMutedTextBrush}"
+                 VerticalAlignment="Center" />
+
+      <StackPanel Grid.Column="1" Orientation="Horizontal">
+        <Button x:Name="ConfirmButton" MinWidth="72" Margin="8,0,8,0" Click="Confirm" />
+        <Button x:Name="CancelButton" MinWidth="72" IsCancel="True" />
+      </StackPanel>
+    </Grid>
+  </Grid>
+</Window>

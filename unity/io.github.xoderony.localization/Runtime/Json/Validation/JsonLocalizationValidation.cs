@@ -11,20 +11,7 @@ public static class JsonLocalizationValidation {
         Debug.Assert(collection is not null);
         Debug.Assert(placeholderReferenceCulture is not null);
 
-        var referenceCultureFound = false;
-        foreach (var culture in collection.GetCultures()) {
-            if (string.Equals(culture.Name, placeholderReferenceCulture.Name, StringComparison.OrdinalIgnoreCase)) {
-                referenceCultureFound = true;
-                placeholderReferenceCulture = culture;
-                break;
-            }
-        }
-
-        if (!referenceCultureFound) {
-            throw new ArgumentException(
-                $"The culture '{placeholderReferenceCulture.Name}' is not part of this locale table collection.",
-                nameof(placeholderReferenceCulture));
-        }
+        placeholderReferenceCulture = ResolvePlaceholderReferenceCulture(collection, placeholderReferenceCulture);
 
         var entryKeys = new HashSet<string>(StringComparer.Ordinal);
         foreach (var entryKey in collection.GetEntryKeys()) {
@@ -33,9 +20,48 @@ public static class JsonLocalizationValidation {
 
         var issues = new List<JsonLocalizationIssue>();
         CollectMissingTranslations(collection, entryKeys, issues);
+        CollectInvalidFormatStrings(collection, entryKeys, issues);
         CollectPlaceholderMismatches(collection, entryKeys, placeholderReferenceCulture, issues);
         CollectUnexpectedTranslationKeys(collection, entryKeys, issues);
 
+        SortIssues(issues);
+
+        return issues;
+    }
+
+    public static IReadOnlyList<JsonLocalizationIssue> ValidateEntry(JsonLocaleTableCollection collection, CultureInfo placeholderReferenceCulture, string entryKey) {
+        Debug.Assert(collection is not null);
+        Debug.Assert(placeholderReferenceCulture is not null);
+        ArgumentNullException.ThrowIfNull(entryKey);
+
+        placeholderReferenceCulture = ResolvePlaceholderReferenceCulture(collection, placeholderReferenceCulture);
+        if (!collection.RootKeyGroup.TryGet(entryKey, out var node) || node is not JsonKeyEntry) {
+            throw new ArgumentException($"The entry key '{entryKey}' is not part of this locale table collection.", nameof(entryKey));
+        }
+
+        var entryKeys = new HashSet<string>(StringComparer.Ordinal) { entryKey };
+        var issues = new List<JsonLocalizationIssue>();
+        CollectMissingTranslations(collection, entryKeys, issues);
+        CollectInvalidFormatStrings(collection, entryKeys, issues);
+        CollectPlaceholderMismatches(collection, entryKeys, placeholderReferenceCulture, issues);
+        SortIssues(issues);
+
+        return issues;
+    }
+
+    private static CultureInfo ResolvePlaceholderReferenceCulture(JsonLocaleTableCollection collection, CultureInfo placeholderReferenceCulture) {
+        foreach (var culture in collection.GetCultures()) {
+            if (string.Equals(culture.Name, placeholderReferenceCulture.Name, StringComparison.OrdinalIgnoreCase)) {
+                return culture;
+            }
+        }
+
+        throw new ArgumentException(
+            $"The culture '{placeholderReferenceCulture.Name}' is not part of this locale table collection.",
+            nameof(placeholderReferenceCulture));
+    }
+
+    private static void SortIssues(List<JsonLocalizationIssue> issues) {
         issues.Sort(static (left, right) => {
             var kind = left.Kind.CompareTo(right.Kind);
             if (kind != 0) {
@@ -49,8 +75,6 @@ public static class JsonLocalizationValidation {
 
             return string.Compare(left.Culture.Name, right.Culture.Name, StringComparison.OrdinalIgnoreCase);
         });
-
-        return issues;
     }
 
     private static void CollectMissingTranslations(
@@ -70,6 +94,26 @@ public static class JsonLocalizationValidation {
         }
     }
 
+    private static void CollectInvalidFormatStrings(
+        JsonLocaleTableCollection collection,
+        HashSet<string> entryKeys,
+        List<JsonLocalizationIssue> issues) {
+        foreach (var culture in collection.GetCultures()) {
+            foreach (var entryKey in entryKeys) {
+                var translation = collection.GetTranslation(culture, entryKey);
+                if (translation.Length == 0 || FormatPlaceholderIndices.TryCollect(translation, out _)) {
+                    continue;
+                }
+
+                issues.Add(new JsonLocalizationIssue(
+                    JsonLocalizationIssueKind.InvalidFormatString,
+                    entryKey,
+                    culture,
+                    $"The translation for '{entryKey}' in '{culture.Name}' is not a valid composite format string."));
+            }
+        }
+    }
+
     private static void CollectPlaceholderMismatches(
         JsonLocaleTableCollection collection,
         HashSet<string> entryKeys,
@@ -81,7 +125,10 @@ public static class JsonLocalizationValidation {
                 continue;
             }
 
-            var referenceIndices = FormatPlaceholderIndices.Collect(referenceTranslation);
+            if (!FormatPlaceholderIndices.TryCollect(referenceTranslation, out var referenceIndices)) {
+                continue;
+            }
+
             foreach (var culture in collection.GetCultures()) {
                 if (string.Equals(culture.Name, placeholderReferenceCulture.Name, StringComparison.OrdinalIgnoreCase)) {
                     continue;
@@ -92,8 +139,7 @@ public static class JsonLocalizationValidation {
                     continue;
                 }
 
-                var indices = FormatPlaceholderIndices.Collect(translation);
-                if (indices.SetEquals(referenceIndices)) {
+                if (!FormatPlaceholderIndices.TryCollect(translation, out var indices) || indices.SetEquals(referenceIndices)) {
                     continue;
                 }
 
