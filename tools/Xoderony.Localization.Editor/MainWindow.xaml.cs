@@ -25,7 +25,6 @@ public partial class MainWindow : Window {
     private readonly Dictionary<string, DataGridColumn> _cultureNameToColumn = new(StringComparer.OrdinalIgnoreCase);
     private readonly EditorLocalizer _localizer;
     private readonly EditorPreferences _preferences;
-    private readonly IDelegateDispatcher<ValidationAnalysisRequestedHandler> _validationAnalysisRequested;
     private readonly IValidationResults _validationResults;
     private readonly IDelegateSubscriber<ValidationResultsChangedHandler> _validationResultsChanged;
     private readonly ProjectWorkspace _workspace;
@@ -35,13 +34,12 @@ public partial class MainWindow : Window {
     private string? _validationCultureFilter;
     private bool _rebuildingValidationFilters;
 
-    internal MainWindow(EditorPreferences preferences, EditorLocalizer localizer, ProjectWorkspace workspace, IValidationResults validationResults, IDelegateSubscriber<ValidationResultsChangedHandler> validationResultsChanged, IDelegateDispatcher<ValidationAnalysisRequestedHandler> validationAnalysisRequested) {
+    internal MainWindow(EditorPreferences preferences, EditorLocalizer localizer, ProjectWorkspace workspace, IValidationResults validationResults, IDelegateSubscriber<ValidationResultsChangedHandler> validationResultsChanged) {
         _preferences = preferences;
         _localizer = localizer;
         _workspace = workspace;
         _validationResults = validationResults;
         _validationResultsChanged = validationResultsChanged;
-        _validationAnalysisRequested = validationAnalysisRequested;
         var theme = _preferences.Get(AppearancePreferenceKeys.Theme, EditorTheme.Light);
         EditorThemeManager.SetTheme(theme);
         InitializeComponent();
@@ -49,6 +47,7 @@ public partial class MainWindow : Window {
         RestoreWindowSize();
         DataContext = _localizer;
         ThemeComboBox.SelectedIndex = theme == EditorTheme.Dark ? 1 : 0;
+        ValidationResultsChanged();
     }
 
     protected override void OnClosed(EventArgs e) {
@@ -104,8 +103,7 @@ public partial class MainWindow : Window {
                 RefreshRows(previousState: new GridState(null, null, 0, 0));
             }
 
-            EmptyState.Visibility = Visibility.Collapsed;
-            TableGrid.Visibility = Visibility.Visible;
+            ProjectMenuButton.IsEnabled = true;
 
             var lastDirectory = _preferences.Get<string?>(ProjectPreferenceKeys.LastDirectory, null);
             if (rememberDirectory && !string.Equals(lastDirectory, directoryPath, StringComparison.OrdinalIgnoreCase)) {
@@ -261,13 +259,9 @@ public partial class MainWindow : Window {
         BreadcrumbPanel.Children.Clear();
         var directoryPath = _workspace.DirectoryPath;
         if (directoryPath is null) {
-            PathPlaceholderText.Visibility = Visibility.Visible;
-            BreadcrumbScrollViewer.Visibility = Visibility.Collapsed;
             return;
         }
 
-        PathPlaceholderText.Visibility = Visibility.Collapsed;
-        BreadcrumbScrollViewer.Visibility = Visibility.Visible;
         var directoryName = Path.GetFileName(Path.TrimEndingDirectorySeparator(directoryPath));
         AddBreadcrumb(directoryName.Length == 0 ? directoryPath : directoryName, string.Empty, directoryPath, isRoot: true);
 
@@ -325,7 +319,6 @@ public partial class MainWindow : Window {
 
         var items = menu.Items;
         items.Clear();
-        AddMenuItem(items, _localizer[EditorStringKeys.Toolbar.Open], OpenDirectory, "Ctrl+O");
 
         var tables = _workspace.Tables;
         if (tables?.IsDirty == true) {
@@ -336,13 +329,11 @@ public partial class MainWindow : Window {
             return;
         }
 
-        items.Add(new Separator());
+        if (items.Count > 0) {
+            items.Add(new Separator());
+        }
         AddMenuItem(items, _localizer[EditorStringKeys.Context.AddLocale], AddLocale);
         if (tables.CultureCount > 0) {
-            var referenceCulture = _workspace.PlaceholderReferenceCulture;
-            Debug.Assert(referenceCulture is not null);
-            AddMenuItem(items, _localizer[EditorStringKeys.Validation.ReferenceLocale, referenceCulture.Name], ChoosePlaceholderReferenceCulture);
-            AddMenuItem(items, _localizer[EditorStringKeys.Validation.Run], RunValidation);
             items.Add(new Separator());
             AddMenuItem(items, _localizer[EditorStringKeys.Toolbar.GenerateKeys], GenerateKeys);
         }
@@ -914,91 +905,29 @@ public partial class MainWindow : Window {
         }
     }
 
-    private void ChoosePlaceholderReferenceCulture(object sender, RoutedEventArgs e) {
-        var tables = _workspace.Tables;
-        if (tables is null) {
+    private void PlaceholderReferenceCultureChanged(object sender, SelectionChangedEventArgs e) {
+        if (_rebuildingValidationFilters) {
             return;
         }
 
-        var cultures = new List<CultureInfo>(tables.CultureCount);
-        foreach (var culture in tables.GetCultures()) {
-            cultures.Add(culture);
+        if (ValidationReferenceLocaleComboBox.SelectedItem is ComboBoxItem { Tag: CultureInfo culture }) {
+            SelectPlaceholderReferenceCulture(culture);
         }
-
-        var dialog = new Window {
-            Title = _localizer[EditorStringKeys.Validation.ReferenceDialogTitle],
-            Owner = this,
-            MinWidth = 420,
-            SizeToContent = SizeToContent.WidthAndHeight,
-            WindowStartupLocation = WindowStartupLocation.CenterOwner,
-            ResizeMode = ResizeMode.NoResize
-        };
-        var panel = new StackPanel { Margin = new Thickness(16) };
-        panel.Children.Add(new TextBlock {
-            Text = _localizer[EditorStringKeys.Validation.ReferenceDialogMessage],
-            TextWrapping = TextWrapping.Wrap,
-            MaxWidth = 560
-        });
-        var comboBox = new ComboBox {
-            ItemsSource = cultures,
-            DisplayMemberPath = nameof(CultureInfo.NativeName),
-            SelectedItem = _workspace.PlaceholderReferenceCulture,
-            Margin = new Thickness(0, 8, 0, 12),
-            MinWidth = 360
-        };
-        panel.Children.Add(comboBox);
-        var buttons = new StackPanel { Orientation = Orientation.Horizontal, HorizontalAlignment = HorizontalAlignment.Right };
-        var confirm = new Button {
-            Content = _localizer[EditorStringKeys.Dialog.Confirm],
-            IsDefault = true,
-            MinWidth = 72,
-            Margin = new Thickness(0, 0, 8, 0)
-        };
-        confirm.Click += (_, _) => {
-            if (comboBox.SelectedItem is CultureInfo selectedCulture) {
-                SelectPlaceholderReferenceCulture(selectedCulture);
-                dialog.DialogResult = true;
-            }
-        };
-        var cancel = new Button {
-            Content = _localizer[EditorStringKeys.Dialog.Cancel],
-            IsCancel = true,
-            MinWidth = 72
-        };
-        buttons.Children.Add(confirm);
-        buttons.Children.Add(cancel);
-        panel.Children.Add(buttons);
-        dialog.Content = panel;
-        dialog.ShowDialog();
-    }
-
-    private void RunValidation(object sender, RoutedEventArgs e) {
-        var referenceCulture = _workspace.PlaceholderReferenceCulture;
-        if (_workspace.Tables is null || referenceCulture is null) {
-            return;
-        }
-
-        var referenceCultureName = _preferences.Get<string?>(ValidationPreferenceKeys.PlaceholderReferenceCulture, null);
-        if (!string.Equals(referenceCultureName, referenceCulture.Name, StringComparison.OrdinalIgnoreCase)) {
-            _preferences.Set(ValidationPreferenceKeys.PlaceholderReferenceCulture, referenceCulture.Name);
-            SavePreferences();
-        }
-
-        _validationKindFilter = null;
-        _validationCultureFilter = null;
-        _validationAnalysisRequested.Handlers?.Invoke();
-        ValidationPanelRow.Height = new GridLength(220);
-        ValidationGridSplitter.Visibility = Visibility.Visible;
-        ValidationPanel.Visibility = Visibility.Visible;
     }
 
     private void RefreshValidationPresentation() {
         var issues = _validationResults.Issues;
         var referenceCulture = _workspace.PlaceholderReferenceCulture;
+        ValidationReferenceLocaleComboBox.IsEnabled = referenceCulture is not null;
+        var canFilter = issues is not null && referenceCulture is not null;
+        ValidationKindFilterComboBox.IsEnabled = canFilter;
+        ValidationLocaleFilterComboBox.IsEnabled = canFilter;
         if (issues is null || referenceCulture is null) {
             ValidationGrid.ItemsSource = null;
             ValidationGrid.Visibility = Visibility.Collapsed;
-            ValidationEmptyText.Text = _localizer[EditorStringKeys.Validation.NoIssues];
+            ValidationEmptyText.Text = _localizer[_workspace.Tables is null
+                ? EditorStringKeys.Validation.NoProject
+                : EditorStringKeys.Validation.NoLocales];
             ValidationEmptyText.Visibility = Visibility.Visible;
             ValidationSummaryText.Text = string.Empty;
             ValidationCompletionText.Text = string.Empty;
@@ -1024,7 +953,7 @@ public partial class MainWindow : Window {
         ValidationEmptyText.Text = _localizer[issues.Count == 0
             ? EditorStringKeys.Validation.NoIssues
             : EditorStringKeys.Validation.NoMatchingIssues];
-        ValidationSummaryText.Text = _localizer[EditorStringKeys.Validation.Summary, rows.Count, issues.Count, referenceCulture.Name];
+        ValidationSummaryText.Text = _localizer[EditorStringKeys.Validation.Summary, rows.Count, issues.Count];
         ValidationCompletionText.Text = BuildCompletionText();
 
         string BuildCompletionText() {
@@ -1062,6 +991,20 @@ public partial class MainWindow : Window {
 
         _rebuildingValidationFilters = true;
         try {
+            ValidationReferenceLocaleComboBox.Items.Clear();
+            var referenceCultureName = _workspace.PlaceholderReferenceCulture?.Name;
+            var selectedReferenceIndex = -1;
+            foreach (var culture in tables.GetCultures()) {
+                ValidationReferenceLocaleComboBox.Items.Add(new ComboBoxItem {
+                    Content = $"{culture.NativeName} ({culture.Name})",
+                    Tag = culture
+                });
+                if (string.Equals(referenceCultureName, culture.Name, StringComparison.OrdinalIgnoreCase)) {
+                    selectedReferenceIndex = ValidationReferenceLocaleComboBox.Items.Count - 1;
+                }
+            }
+            ValidationReferenceLocaleComboBox.SelectedIndex = selectedReferenceIndex;
+
             ValidationKindFilterComboBox.Items.Clear();
             ValidationKindFilterComboBox.Items.Add(new ComboBoxItem {
                 Content = _localizer[EditorStringKeys.Validation.FilterAll]
@@ -1122,12 +1065,6 @@ public partial class MainWindow : Window {
     private void ValidationResultsChanged() {
         RebuildValidationFilters();
         RefreshValidationPresentation();
-    }
-
-    private void CloseValidationPanel(object sender, RoutedEventArgs e) {
-        ValidationPanel.Visibility = Visibility.Collapsed;
-        ValidationGridSplitter.Visibility = Visibility.Collapsed;
-        ValidationPanelRow.Height = new GridLength(0);
     }
 
     private void NavigateToValidationIssue(object sender, MouseButtonEventArgs e) {

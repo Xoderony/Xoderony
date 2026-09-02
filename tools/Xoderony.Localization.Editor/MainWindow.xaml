@@ -46,6 +46,7 @@
       <WrapPanel Orientation="Horizontal">
         <StackPanel Orientation="Horizontal" Margin="0,0,10,0">
           <Button x:Name="ProjectMenuButton"
+                  IsEnabled="False"
                   Style="{StaticResource ToolbarButtonStyle}"
                   Click="OpenProjectMenu">
             <StackPanel Orientation="Horizontal">
@@ -93,23 +94,27 @@
       <Grid>
         <Grid.ColumnDefinitions>
           <ColumnDefinition Width="Auto" />
+          <ColumnDefinition Width="Auto" />
           <ColumnDefinition Width="3*" MinWidth="160" />
           <ColumnDefinition Width="2*" MinWidth="220" MaxWidth="360" />
         </Grid.ColumnDefinitions>
-        <TextBlock Grid.Column="0" Text="{Binding [path.label]}" Style="{StaticResource SectionTitleTextStyle}" VerticalAlignment="Center" />
-        <Grid Grid.Column="1" Margin="12,0">
-          <TextBlock x:Name="PathPlaceholderText"
-                     Text="{Binding [path.unopened]}"
-                     Foreground="{DynamicResource VsMutedTextBrush}"
-                     VerticalAlignment="Center" />
-          <ScrollViewer x:Name="BreadcrumbScrollViewer"
-                        HorizontalScrollBarVisibility="Auto"
-                        VerticalScrollBarVisibility="Disabled"
-                        Visibility="Collapsed">
+        <Button Grid.Column="0"
+                Margin="0,0,12,0"
+                Style="{StaticResource ToolbarButtonStyle}"
+                Click="OpenDirectory">
+          <StackPanel Orientation="Horizontal">
+            <TextBlock Text="&#xE8E5;" Style="{StaticResource ToolbarIconTextStyle}" />
+            <TextBlock Text="{Binding [toolbar.open]}" />
+          </StackPanel>
+        </Button>
+        <TextBlock Grid.Column="1" Text="{Binding [path.label]}" Style="{StaticResource SectionTitleTextStyle}" VerticalAlignment="Center" />
+        <Grid Grid.Column="2" Margin="12,0">
+          <ScrollViewer HorizontalScrollBarVisibility="Auto"
+                        VerticalScrollBarVisibility="Disabled">
             <StackPanel x:Name="BreadcrumbPanel" Orientation="Horizontal" />
           </ScrollViewer>
         </Grid>
-        <Grid Grid.Column="2" VerticalAlignment="Center">
+        <Grid Grid.Column="3" VerticalAlignment="Center">
           <TextBox x:Name="SearchTextBox"
                    Height="30"
                    Padding="30,4,28,4"
@@ -153,9 +158,9 @@
 
     <Grid Grid.Row="2" Background="{DynamicResource VsSurfaceBrush}">
       <Grid.RowDefinitions>
-        <RowDefinition Height="*" />
+        <RowDefinition Height="*" MinHeight="100" />
         <RowDefinition Height="Auto" />
-        <RowDefinition x:Name="ValidationPanelRow" Height="0" />
+        <RowDefinition Height="220" MinHeight="140" />
       </Grid.RowDefinitions>
 
       <Grid Grid.Row="0">
@@ -169,51 +174,26 @@
                   CanUserSortColumns="False"
                   FrozenColumnCount="1"
                   IsReadOnly="True"
-                  Visibility="Collapsed"
                   MouseDoubleClick="HandleCellDoubleClick"
                   PreviewMouseRightButtonDown="SelectRowOnRightClick">
           <DataGrid.ContextMenu>
             <ContextMenu Opened="PopulateTableContextMenu" />
           </DataGrid.ContextMenu>
         </DataGrid>
-
-        <Border x:Name="EmptyState"
-                Margin="10"
-                Background="{DynamicResource VsSurfaceBrush}"
-                BorderBrush="{DynamicResource VsBorderBrush}"
-                BorderThickness="1">
-          <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
-            <TextBlock Text="&#xE8E5;"
-                       Style="{StaticResource EmptyStateIconTextStyle}"
-                       Foreground="{DynamicResource VsAccentBrush}"
-                       HorizontalAlignment="Center"
-                       Margin="0,0,0,14" />
-            <TextBlock Text="{Binding [empty_state.title]}" Style="{StaticResource EmptyStateTitleTextStyle}" HorizontalAlignment="Center" />
-            <TextBlock Text="{Binding [empty_state.description]}"
-                       Foreground="{DynamicResource VsMutedTextBrush}"
-                       HorizontalAlignment="Center"
-                       Margin="0,6,0,18" />
-            <Button Click="OpenDirectory" Padding="18,7" Content="{Binding [empty_state.select_directory]}" />
-          </StackPanel>
-        </Border>
       </Grid>
 
-      <GridSplitter x:Name="ValidationGridSplitter"
-                    Grid.Row="1"
+      <GridSplitter Grid.Row="1"
                     Height="5"
                     HorizontalAlignment="Stretch"
                     Background="{DynamicResource VsBorderBrush}"
                     ResizeDirection="Rows"
-                    ResizeBehavior="PreviousAndNext"
-                    Visibility="Collapsed" />
+                    ResizeBehavior="PreviousAndNext" />
 
-      <Border x:Name="ValidationPanel"
-              Grid.Row="2"
+      <Border Grid.Row="2"
               Margin="10,0,10,10"
               Background="{DynamicResource VsSurfaceBrush}"
               BorderBrush="{DynamicResource VsBorderBrush}"
-              BorderThickness="1"
-              Visibility="Collapsed">
+              BorderThickness="1">
         <Grid>
           <Grid.RowDefinitions>
             <RowDefinition Height="Auto" />
@@ -229,28 +209,21 @@
                 <RowDefinition Height="Auto" />
                 <RowDefinition Height="Auto" />
               </Grid.RowDefinitions>
-              <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="*" />
-                <ColumnDefinition Width="Auto" />
-              </Grid.ColumnDefinitions>
-              <StackPanel Grid.Row="0" Grid.Column="0">
+              <StackPanel Grid.Row="0">
                 <TextBlock x:Name="ValidationSummaryText" FontWeight="SemiBold" VerticalAlignment="Center" />
                 <TextBlock x:Name="ValidationCompletionText"
                            Margin="0,3,12,0"
                            Foreground="{DynamicResource VsMutedTextBrush}"
                            TextWrapping="Wrap" />
               </StackPanel>
-              <Button Grid.Column="1"
-                      Grid.Row="0"
-                      Width="26"
-                      Height="26"
-                      Padding="0"
-                      Style="{StaticResource ToolbarButtonStyle}"
-                      Click="CloseValidationPanel"
-                      ToolTip="{Binding [validation.close_tooltip]}">
-                <TextBlock Text="&#xE711;" Style="{StaticResource SmallIconTextStyle}" />
-              </Button>
-              <WrapPanel Grid.Row="1" Grid.ColumnSpan="2" Margin="0,8,0,0">
+              <WrapPanel Grid.Row="1" Margin="0,8,0,0">
+                <StackPanel Orientation="Horizontal" Margin="0,0,16,0" VerticalAlignment="Center">
+                  <TextBlock Text="{Binding [validation.reference_locale_label]}" Margin="0,0,7,0" VerticalAlignment="Center" />
+                  <ComboBox x:Name="ValidationReferenceLocaleComboBox"
+                            Width="180"
+                            ToolTip="{Binding [validation.reference_locale_tooltip]}"
+                            SelectionChanged="PlaceholderReferenceCultureChanged" />
+                </StackPanel>
                 <StackPanel Orientation="Horizontal" Margin="0,0,16,0" VerticalAlignment="Center">
                   <TextBlock Text="{Binding [validation.filter_kind_label]}" Margin="0,0,7,0" VerticalAlignment="Center" />
                   <ComboBox x:Name="ValidationKindFilterComboBox"

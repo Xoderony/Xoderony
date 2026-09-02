@@ -23,7 +23,6 @@ public partial class App : Application {
         services.AddSingleton(preferences);
         services.AddSingleton(localizer);
         services.AddDelegateChannel<ProjectWorkspaceChangedHandler>();
-        services.AddDelegateChannel<ValidationAnalysisRequestedHandler>();
         services.AddDelegateChannel<ValidationResultsChangedHandler>();
         services.AddSingleton<ProjectWorkspace>();
         services.AddSingleton<ValidationResultStore>();
@@ -34,8 +33,7 @@ public partial class App : Application {
             provider.GetRequiredService<EditorLocalizer>(),
             provider.GetRequiredService<ProjectWorkspace>(),
             provider.GetRequiredService<IValidationResults>(),
-            provider.GetRequiredService<IDelegateSubscriber<ValidationResultsChangedHandler>>(),
-            provider.GetRequiredService<IDelegateDispatcher<ValidationAnalysisRequestedHandler>>()));
+            provider.GetRequiredService<IDelegateSubscriber<ValidationResultsChangedHandler>>()));
 
         _services = services.BuildServiceProvider();
         _services.GetRequiredService<ValidationFeature>();

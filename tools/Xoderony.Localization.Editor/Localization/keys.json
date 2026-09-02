@@ -1,5 +1,4 @@
 {
-  "aaaaaaaaaaaaaaa": null,
   "context": {
     "add_entry": null,
     "add_group": null,
@@ -49,11 +48,6 @@
     "unsaved_message": null,
     "unsaved_title": null
   },
-  "empty_state": {
-    "description": null,
-    "select_directory": null,
-    "title": null
-  },
   "grid": {
     "name": null
   },
@@ -61,8 +55,7 @@
     "label": null
   },
   "path": {
-    "label": null,
-    "unopened": null
+    "label": null
   },
   "search": {
     "clear_tooltip": null,
@@ -82,7 +75,6 @@
   "validation": {
     "cannot_navigate": null,
     "cannot_navigate_title": null,
-    "close_tooltip": null,
     "column_key": null,
     "column_kind": null,
     "column_locale": null,
@@ -96,15 +88,14 @@
     "kind_placeholder_mismatch": null,
     "kind_unexpected_translation_key": null,
     "no_issues": null,
+    "no_locales": null,
     "no_matching_issues": null,
-    "reference_dialog_message": null,
-    "reference_dialog_title": null,
-    "reference_locale": null,
-    "run": null,
+    "no_project": null,
+    "reference_locale_label": null,
+    "reference_locale_tooltip": null,
     "summary": null
   },
   "window": {
-    "ccc": null,
     "title": null
   }
 }
