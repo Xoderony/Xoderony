@@ -1,0 +1,20 @@
+{
+  "name": "io.github.xoderony.numerics.unity",
+  "version": "0.1.0",
+  "displayName": "Xoderony Numerics Unity",
+  "description": "Unity Editor integration for Xoderony.Numerics, including a decimal Q16 property drawer.",
+  "unity": "7000.0",
+  "dependencies": {
+    "io.github.xoderony.numerics": "0.1.0"
+  },
+  "author": {
+    "name": "Xoderony",
+    "url": "https://github.com/Xoderony"
+  },
+  "keywords": [
+    "xoderony",
+    "numerics",
+    "editor",
+    "fixed-point"
+  ]
+}

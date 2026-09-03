@@ -2,7 +2,7 @@
   "name": "io.github.xoderony.text",
   "version": "0.1.0",
   "displayName": "Xoderony Text",
-  "description": "Fixed-capacity UTF-16 and UTF-8 span writers. Same sources as the Xoderony.Text NuGet package.",
+  "description": "Fixed-capacity UTF-16 and UTF-8 span writers and string extensions. Same sources as the Xoderony.Text NuGet package.",
   "unity": "7000.0",
   "author": {
     "name": "Xoderony",

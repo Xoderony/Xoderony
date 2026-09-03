@@ -28,6 +28,7 @@ coverage*.info
 
 # Machine-specific Unity reference paths
 src/Xoderony.Logging.Unity/Xoderony.Logging.Unity.local.props
+src/Xoderony.Numerics.Unity.Editor/Xoderony.Numerics.Unity.Editor.local.props
 
 # VS Code: keep shared launch and task definitions
 .vscode/*

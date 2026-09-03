@@ -12,7 +12,7 @@
 - SDK、目标框架、C# 语言版本和 nullable 模式以 `global.json`、`Directory.Build.props` 与项目文件为准；未经用户明确要求不改变这些基线。
 - 所有库程序集同时面向 Unity，以 `unity/*/Runtime` 中的 `.cs` 为权威源码；`src/` 中的 .NET 项目只通过链接编译项引用同一份源码。新增库程序集时同时提供对应 UPM 包，不得复制维护两套源码。
 - 本仓库只包含代码与文本型 UPM 资产；新增资源时按类型生成具有仓库内唯一 GUID 的 `.meta`，移动或重命名时保留原 `.meta`，删除时一并删除，并静态检查缺失、孤立和重复 GUID，不要求通过 Unity Editor 生成。
-- `Xoderony.Core` 不得依赖 Unity；无 Unity 依赖的实现使用 BCL 与 `System.Diagnostics.Debug.Assert`。
+- 无 Unity 依赖的实现使用 BCL 与 `System.Diagnostics.Debug.Assert`。
 - Unity 包的 `package.json`、README、CHANGELOG、程序集定义和 `.meta` 是独立的发布资产，只在任务涉及对应内容时修改。
 
 ## 公共 API

@@ -1,0 +1,14 @@
+{
+    "name": "Xoderony.Numerics",
+    "rootNamespace": "Xoderony.Numerics",
+    "references": [],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": true
+}

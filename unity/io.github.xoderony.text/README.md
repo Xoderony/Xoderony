@@ -1,6 +1,6 @@
 # Xoderony Text
 
-提供基于调用方缓冲区的 UTF-16 与 UTF-8 文本构造和格式化工具，不依赖 `UnityEngine`。
+提供基于调用方缓冲区的 UTF-16 与 UTF-8 文本构造、格式化工具和字符串扩展，不依赖 `UnityEngine`。
 
 ## 程序集
 
@@ -21,3 +21,7 @@ https://github.com/Xoderony/Xoderony.git?path=unity/io.github.xoderony.text
 ## 兼容性
 
 - Unity 7（技术版本 `7000.0`）或更高版本
+
+## 字符串扩展
+
+Xoderony.Extensions.StringExtensions 提供 IsNullOrEmpty 和 IsNullOrWhiteSpace 扩展属性，从 Xoderony.Core 移入本程序集，命名空间保持不变。使用这些扩展的调用方需改为引用 Xoderony.Text 并重新编译。

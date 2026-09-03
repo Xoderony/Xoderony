@@ -1,0 +1,47 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <Import Project="Xoderony.Numerics.Unity.Editor.local.props" Condition="Exists('Xoderony.Numerics.Unity.Editor.local.props')" />
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <RootNamespace>Xoderony.Numerics.Unity.Editor</RootNamespace>
+    <AssemblyName>Xoderony.Numerics.Unity.Editor</AssemblyName>
+    <IsPackable>false</IsPackable>
+    <AllowUnsafeBlocks>false</AllowUnsafeBlocks>
+    <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
+    <Description>Unity Editor property drawers for Xoderony.Numerics.</Description>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="..\..\unity\io.github.xoderony.numerics.unity\Editor\**\*.cs" Link="%(RecursiveDir)%(Filename)%(Extension)" />
+    <ProjectReference Include="..\Xoderony.Numerics\Xoderony.Numerics.csproj" />
+    <Reference Include="UnityEditor">
+      <HintPath>$(UnityManagedPath)\..\UnityEditor.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="UnityEditor.CoreModule">
+      <HintPath>$(UnityManagedPath)\UnityEditor.CoreModule.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="UnityEditor.UIElementsModule">
+      <HintPath>$(UnityManagedPath)\UnityEditor.UIElementsModule.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="UnityEngine.CoreModule">
+      <HintPath>$(UnityManagedPath)\UnityEngine.CoreModule.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="UnityEngine.SharedInternalsModule">
+      <HintPath>$(UnityManagedPath)\UnityEngine.SharedInternalsModule.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="UnityEngine.IMGUIModule">
+      <HintPath>$(UnityManagedPath)\UnityEngine.IMGUIModule.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="UnityEngine.UIElementsModule">
+      <HintPath>$(UnityManagedPath)\UnityEngine.UIElementsModule.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+  </ItemGroup>
+  <Target Name="ValidateUnityManagedPath" BeforeTargets="ResolveAssemblyReferences" Condition="!Exists('$(UnityManagedPath)\UnityEditor.CoreModule.dll') Or !Exists('$(UnityManagedPath)\UnityEditor.UIElementsModule.dll') Or !Exists('$(UnityManagedPath)\UnityEngine.UIElementsModule.dll')">
+    <Error Text="Set UnityManagedPath in src/Xoderony.Numerics.Unity.Editor/Xoderony.Numerics.Unity.Editor.local.props to the Editor/Data/Managed/UnityEngine directory of an installed Unity Editor." />
+  </Target>
+</Project>
