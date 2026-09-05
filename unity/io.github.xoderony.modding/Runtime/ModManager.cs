@@ -13,12 +13,19 @@ public abstract class ModManager {
     public const string ManifestFileName = "manifest.json";
 
     private static readonly JsonSerializerOptions ManifestJsonOptions = new(JsonSerializerOptions.Web) {
+#if NET10_0_OR_GREATER
         RespectNullableAnnotations = true
+#endif
     };
 
     private readonly string _modsDirectory;
+#if NET10_0_OR_GREATER
     private readonly OrderedDictionary<string, ModManifest> _idToManifest = new(StringComparer.Ordinal);
     private readonly OrderedDictionary<string, Mod> _idToMod = new(StringComparer.Ordinal);
+#else
+    private readonly OrderedModMap<ModManifest> _idToManifest = new();
+    private readonly OrderedModMap<Mod> _idToMod = new();
+#endif
     private readonly Dictionary<string, string> _idToRootDirectory = new(StringComparer.Ordinal);
 
     protected ModManager(string modsDirectory) {
@@ -145,6 +152,21 @@ public abstract class ModManager {
             try {
                 using var stream = File.OpenRead(path);
                 var manifest = JsonSerializer.Deserialize<ModManifest>(stream, ManifestJsonOptions) ?? throw new InvalidDataException($"The manifest '{path}' must contain a JSON object at '$'.");
+#if !NET10_0_OR_GREATER
+                ValidateNotNull(manifest.Id, "id");
+                ValidateNotNull(manifest.Version, "version");
+                ValidateNotNull(manifest.DisplayName, "displayName");
+                ValidateNotNull(manifest.Name, "name");
+                ValidateNotNull(manifest.Author, "author");
+                ValidateNotNull(manifest.Description, "description");
+                ValidateNotNull(manifest.Dependencies, "dependencies");
+
+                void ValidateNotNull(object? value, string field) {
+                    if (value is null) {
+                        throw new InvalidDataException($"The manifest '{path}' field '{field}' must not be null.");
+                    }
+                }
+#endif
                 if (manifest.Id.Length == 0) {
                     throw new InvalidDataException($"The manifest '{path}' field 'id' must not be empty.");
                 }

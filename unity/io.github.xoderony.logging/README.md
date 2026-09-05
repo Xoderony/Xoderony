@@ -96,3 +96,11 @@ https://github.com/Xoderony/Xoderony.git?path=unity/io.github.xoderony.logging
 ## 许可证
 
 [MIT](LICENSE.md)
+
+## netstandard2.1 DLL 兼容版
+
+两个程序集同时生成 `net10.0` 和 `netstandard2.1`；Unity 6000.7 使用兼容版 DLL。UPM 源码安装仍面向 Unity 7。
+
+兼容版提供普通字符串/Span 日志、等级过滤、调用位置标签、context 与异常传递；不提供插值处理器。上文“过滤后不执行插值表达式”的保证仅适用于 .NET 10 处理器路径。Unity C# 9 的 `$"..."` 会在调用日志方法前求值；需要避免这项开销时，先检查 `logger.IsEnabled(level)`，再构造消息。
+
+.NET 10 继续使用 `DefaultInterpolatedStringHandler`。兼容版在通过等级过滤后使用 `StringBuilder` 构造带标签的消息，分配特征与 .NET 10 不同。

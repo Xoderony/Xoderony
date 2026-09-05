@@ -43,3 +43,7 @@ Editor/Xoderony.Numerics.Unity.Editor.asmdef 仅在 Editor 平台编译，引用
   </PropertyGroup>
 </Project>
 ```
+
+## netstandard2.1 DLL 集成
+
+Editor 项目同时生成 `net10.0` 和 `netstandard2.1`。Unity 6000.7 将兼容版 `Xoderony.Numerics.dll` 放入运行时插件目录，将 `Xoderony.Numerics.Unity.Editor.dll` 放入 `Editor` 子目录。两种 Inspector 入口与 RawValue 存储规则保持一致；UPM 源码安装仍面向 Unity 7。

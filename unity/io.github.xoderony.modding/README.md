@@ -107,5 +107,11 @@ https://github.com/Xoderony/Xoderony.git?path=unity/io.github.xoderony.modding
 
 ## 兼容性
 
-- .NET 项目目标框架为 `net10.0`。
+- .NET 项目同时面向 `net10.0` 和 `netstandard2.1`。
 - Unity 7（技术版本 `7000.0`）或更高版本
+
+## netstandard2.1 DLL 兼容版
+
+兼容版保留 `ModManifest`、`Mod` 和 `ModManager`，使用有序存储维护清单视图与加载顺序，清单校验和生命周期调度规则保持一致。Unity 宿主派生 `ModManager`，实现 `CreateMod` / `ReleaseMod`。
+
+`AssemblyLoadContextModManager` 仅在 .NET 10 提供；兼容版不模拟可卸载的程序集上下文。兼容版依赖 `System.Text.Json` 10.0.11 及其运行时依赖，DLL 集成时需一并提供；同一 Unity 项目中每个依赖程序集只保留一份。UPM 源码安装仍面向 Unity 7。

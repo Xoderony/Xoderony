@@ -1,7 +1,9 @@
 using System;
 using System.Buffers.Binary;
 using System.Diagnostics;
+#if NET10_0_OR_GREATER
 using System.Runtime.CompilerServices;
+#endif
 using System.Runtime.InteropServices;
 
 namespace Xoderony.Serialization;
@@ -30,8 +32,14 @@ public ref struct SpanWriter(Span<byte> destination) {
     /// <param name="value">要写入的值。</param>
 
     public void WriteUnmanaged<T>(T value) where T : unmanaged {
+#if NET10_0_OR_GREATER
         MemoryMarshal.Write(Destination[Position..], value);
         Position += Unsafe.SizeOf<T>();
+#else
+        var bytes = MemoryMarshal.AsBytes(MemoryMarshal.CreateReadOnlySpan(ref value, 1));
+        bytes.CopyTo(Destination[Position..]);
+        Position += bytes.Length;
+#endif
     }
 
     public void WriteByte(byte value) {
@@ -85,12 +93,20 @@ public ref struct SpanWriter(Span<byte> destination) {
     }
 
     public void WriteSingle(float value) {
+#if NET10_0_OR_GREATER
         BinaryPrimitives.WriteSingleLittleEndian(Destination[Position..], value);
+#else
+        BinaryPrimitives.WriteInt32LittleEndian(Destination[Position..], BitConverter.SingleToInt32Bits(value));
+#endif
         Position += 4;
     }
 
     public void WriteDouble(double value) {
+#if NET10_0_OR_GREATER
         BinaryPrimitives.WriteDoubleLittleEndian(Destination[Position..], value);
+#else
+        BinaryPrimitives.WriteInt64LittleEndian(Destination[Position..], BitConverter.DoubleToInt64Bits(value));
+#endif
         Position += 8;
     }
 

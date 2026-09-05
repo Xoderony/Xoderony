@@ -1,0 +1,34 @@
+<Project>
+  <Import Project="Sdk.props" Sdk="Microsoft.NET.Sdk" />
+  <PropertyGroup>
+    <TargetFramework>net472</TargetFramework>
+    <Version>0.4.0</Version>
+    <RootNamespace>Xoderony.ArgumentWrapping.Vsix</RootNamespace>
+    <AssemblyName>Xoderony.ArgumentWrapping.Vsix</AssemblyName>
+    <IsPackable>false</IsPackable>
+    <GeneratePkgDefFile>false</GeneratePkgDefFile>
+    <IncludeAssemblyInVSIXContainer>false</IncludeAssemblyInVSIXContainer>
+    <DeployExtension>false</DeployExtension>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="Microsoft.VSSDK.BuildTools" Version="17.14.2120" PrivateAssets="all" GeneratePathProperty="true" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\Xoderony.ArgumentWrapping\Xoderony.ArgumentWrapping.csproj" ReferenceOutputAssembly="false" />
+    <ProjectReference Include="..\Xoderony.ArgumentWrapping.CodeFixes\Xoderony.ArgumentWrapping.CodeFixes.csproj" ReferenceOutputAssembly="false" />
+    <Content Include="..\Xoderony.ArgumentWrapping.CodeFixes\bin\$(Configuration)\netstandard2.0\Xoderony.ArgumentWrapping.CodeFixes.dll">
+      <IncludeInVSIX>true</IncludeInVSIX>
+      <VSIXSubPath>Analyzers</VSIXSubPath>
+    </Content>
+    <Content Include="..\Xoderony.ArgumentWrapping\bin\$(Configuration)\netstandard2.0\Xoderony.ArgumentWrapping.dll">
+      <IncludeInVSIX>true</IncludeInVSIX>
+      <VSIXSubPath>Analyzers</VSIXSubPath>
+    </Content>
+    <Content Include="..\Xoderony.ArgumentWrapping\bin\$(Configuration)\netstandard2.0\zh-CN\Xoderony.ArgumentWrapping.resources.dll">
+      <IncludeInVSIX>true</IncludeInVSIX>
+      <VSIXSubPath>Analyzers\zh-CN</VSIXSubPath>
+    </Content>
+  </ItemGroup>
+  <Import Project="Sdk.targets" Sdk="Microsoft.NET.Sdk" />
+  <Import Project="$(PkgMicrosoft_VSSDK_BuildTools)\tools\VSSDK\Microsoft.VsSDK.targets" Condition="Exists('$(PkgMicrosoft_VSSDK_BuildTools)\tools\VSSDK\Microsoft.VsSDK.targets')" />
+</Project>

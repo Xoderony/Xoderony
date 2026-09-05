@@ -1,5 +1,7 @@
 using System;
+#if NET10_0_OR_GREATER
 using System.Numerics;
+#endif
 
 namespace Xoderony.Numerics;
 
@@ -14,6 +16,7 @@ public partial struct Q16 :
     IEquatable<Q16>,
     IComparable<Q16>,
     IComparable,
+#if NET10_0_OR_GREATER
     ISpanFormattable,
     IUtf8SpanFormattable,
     IAdditionOperators<Q16, Q16, Q16>,
@@ -27,7 +30,11 @@ public partial struct Q16 :
     IComparisonOperators<Q16, Q16, bool>,
     IAdditiveIdentity<Q16, Q16>,
     IMultiplicativeIdentity<Q16, Q16>,
-    IMinMaxValue<Q16> {
+    IMinMaxValue<Q16>
+#else
+    IFormattable
+#endif
+{
 
     /// <summary>底层编码中小数部分占用的位数。</summary>
     public const int FractionalBits = 16;

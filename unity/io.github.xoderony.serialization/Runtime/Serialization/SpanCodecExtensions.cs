@@ -1,3 +1,4 @@
+#if NET10_0_OR_GREATER
 namespace Xoderony.Serialization;
 
 public static class SpanCodecExtensions {
@@ -24,3 +25,4 @@ public static class SpanCodecExtensions {
         }
     }
 }
+#endif

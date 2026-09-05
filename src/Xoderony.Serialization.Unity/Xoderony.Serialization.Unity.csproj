@@ -1,0 +1,28 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <Import Project="Xoderony.Serialization.Unity.local.props" Condition="Exists('Xoderony.Serialization.Unity.local.props')" />
+  <PropertyGroup>
+    <TargetFramework />
+    <TargetFrameworks>net10.0;netstandard2.1</TargetFrameworks>
+    <RootNamespace>Xoderony.Serialization.Unity</RootNamespace>
+    <AssemblyName>Xoderony.Serialization.Unity</AssemblyName>
+    <IsPackable>false</IsPackable>
+    <AllowUnsafeBlocks>false</AllowUnsafeBlocks>
+    <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
+    <Description>Unity value type codecs for Xoderony.Serialization.</Description>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="..\..\unity\io.github.xoderony.serialization.unity\Runtime\**\*.cs" Link="%(RecursiveDir)%(Filename)%(Extension)" />
+    <ProjectReference Include="..\Xoderony.Serialization\Xoderony.Serialization.csproj" />
+    <Reference Include="UnityEngine.CoreModule">
+      <HintPath>$(UnityManagedPath)\UnityEngine.CoreModule.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="UnityEngine.SharedInternalsModule" Condition="Exists('$(UnityManagedPath)\UnityEngine.SharedInternalsModule.dll')">
+      <HintPath>$(UnityManagedPath)\UnityEngine.SharedInternalsModule.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+  </ItemGroup>
+  <Target Name="ValidateUnityManagedPath" BeforeTargets="ResolveAssemblyReferences" Condition="!Exists('$(UnityManagedPath)\UnityEngine.CoreModule.dll')">
+    <Error Text="Set UnityManagedPath in src/Xoderony.Serialization.Unity/Xoderony.Serialization.Unity.local.props to the Editor/Data/Managed/UnityEngine directory of an installed Unity Editor." />
+  </Target>
+</Project>

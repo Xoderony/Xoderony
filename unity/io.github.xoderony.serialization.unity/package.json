@@ -1,0 +1,20 @@
+{
+  "name": "io.github.xoderony.serialization.unity",
+  "version": "0.1.0",
+  "displayName": "Xoderony Serialization Unity",
+  "description": "Explicit little-endian codecs for Unity value types, built on Xoderony.Serialization.",
+  "unity": "7000.0",
+  "dependencies": {
+    "io.github.xoderony.serialization": "0.1.0"
+  },
+  "author": {
+    "name": "Xoderony",
+    "url": "https://github.com/Xoderony"
+  },
+  "keywords": [
+    "xoderony",
+    "serialization",
+    "unity",
+    "binary"
+  ]
+}

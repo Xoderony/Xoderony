@@ -1,5 +1,7 @@
 using System;
+#if NET10_0_OR_GREATER
 using System.Diagnostics;
+#endif
 using System.Diagnostics.CodeAnalysis;
 using System.Text;
 
@@ -61,6 +63,7 @@ public ref struct Utf16SpanWriter(Span<char> destination) {
         return ref this;
     }
 
+#if NET10_0_OR_GREATER
     [UnscopedRef]
     public ref Utf16SpanWriter Write<T>(T value, scoped ReadOnlySpan<char> format = default, IFormatProvider? provider = null) where T : ISpanFormattable {
         var success = value.TryFormat(RemainingSpan, out var charsWritten, format, provider);
@@ -77,6 +80,7 @@ public ref struct Utf16SpanWriter(Span<char> destination) {
 
         return ref Write(value.Value, format, provider);
     }
+#endif
 
     [UnscopedRef]
     public ref Utf16SpanWriter WriteLine() {

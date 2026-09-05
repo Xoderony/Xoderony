@@ -1,3 +1,4 @@
+#if NET10_0_OR_GREATER
 using System;
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
@@ -357,3 +358,4 @@ public ref struct UnityCriticalLogInterpolatedStringHandler
         return _handler.GetFormattedText();
     }
 }
+#endif

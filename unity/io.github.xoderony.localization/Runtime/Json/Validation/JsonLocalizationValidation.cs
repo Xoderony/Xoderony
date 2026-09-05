@@ -32,7 +32,9 @@ public static class JsonLocalizationValidation {
     public static IReadOnlyList<JsonLocalizationIssue> ValidateEntry(JsonLocaleTableCollection collection, CultureInfo placeholderReferenceCulture, string entryKey) {
         Debug.Assert(collection is not null);
         Debug.Assert(placeholderReferenceCulture is not null);
-        ArgumentNullException.ThrowIfNull(entryKey);
+        if (entryKey is null) {
+            throw new ArgumentNullException(nameof(entryKey));
+        }
 
         placeholderReferenceCulture = ResolvePlaceholderReferenceCulture(collection, placeholderReferenceCulture);
         if (!collection.RootKeyGroup.TryGet(entryKey, out var node) || node is not JsonKeyEntry) {

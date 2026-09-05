@@ -1,3 +1,4 @@
+#if NET10_0_OR_GREATER
 using System;
 using System.ComponentModel;
 using System.IO;
@@ -430,3 +431,28 @@ internal ref struct LogInterpolatedStringHandlerCore
         return _handler.ToStringAndClear();
     }
 }
+#else
+using System;
+using System.IO;
+using System.Text;
+
+namespace Xoderony.Logging;
+
+internal ref struct LogInterpolatedStringHandlerCore {
+    private StringBuilder _builder;
+
+    public LogInterpolatedStringHandlerCore(int literalLength, int formattedCount, string filePath, string memberName) {
+        var fileName = Path.GetFileNameWithoutExtension(filePath.AsSpan());
+        _builder = new StringBuilder(literalLength + fileName.Length + memberName.Length + 4);
+        _builder.Append('[').Append(fileName).Append('.').Append(memberName).Append("] ");
+    }
+
+    public void AppendFormatted(scoped ReadOnlySpan<char> value) {
+        _builder.Append(value);
+    }
+
+    public string GetFormattedText() {
+        return _builder.ToString();
+    }
+}
+#endif

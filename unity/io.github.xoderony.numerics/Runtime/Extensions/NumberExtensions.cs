@@ -1,3 +1,4 @@
+#if NET10_0_OR_GREATER
 using System.Diagnostics;
 using System.Numerics;
 
@@ -43,3 +44,4 @@ public static class NumberExtensions {
         }
     }
 }
+#endif

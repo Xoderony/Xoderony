@@ -1,7 +1,9 @@
 using System;
 using System.Buffers.Binary;
 using System.Diagnostics;
+#if NET10_0_OR_GREATER
 using System.Runtime.CompilerServices;
+#endif
 using System.Runtime.InteropServices;
 
 namespace Xoderony.Serialization;
@@ -31,7 +33,11 @@ public ref struct SpanReader(ReadOnlySpan<byte> source) {
 
     public T ReadUnmanaged<T>() where T : unmanaged {
         var value = MemoryMarshal.Read<T>(Source[Position..]);
+#if NET10_0_OR_GREATER
         Position += Unsafe.SizeOf<T>();
+#else
+        Position += MemoryMarshal.AsBytes(MemoryMarshal.CreateReadOnlySpan(ref value, 1)).Length;
+#endif
         return value;
     }
 
@@ -93,13 +99,21 @@ public ref struct SpanReader(ReadOnlySpan<byte> source) {
     }
 
     public float ReadSingle() {
+#if NET10_0_OR_GREATER
         var value = BinaryPrimitives.ReadSingleLittleEndian(Source[Position..]);
+#else
+        var value = BitConverter.Int32BitsToSingle(BinaryPrimitives.ReadInt32LittleEndian(Source[Position..]));
+#endif
         Position += 4;
         return value;
     }
 
     public double ReadDouble() {
+#if NET10_0_OR_GREATER
         var value = BinaryPrimitives.ReadDoubleLittleEndian(Source[Position..]);
+#else
+        var value = BitConverter.Int64BitsToDouble(BinaryPrimitives.ReadInt64LittleEndian(Source[Position..]));
+#endif
         Position += 8;
         return value;
     }

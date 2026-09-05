@@ -42,6 +42,7 @@ public partial struct Q16 {
         return true;
     }
 
+#if NET10_0_OR_GREATER
     public readonly bool TryFormat(Span<byte> utf8Destination, out int bytesWritten, ReadOnlySpan<char> format, IFormatProvider? provider) {
         if (!RawValue.TryFormat(utf8Destination, out var numeratorWritten, format, provider)) {
             bytesWritten = 0;
@@ -59,4 +60,5 @@ public partial struct Q16 {
         bytesWritten = numeratorWritten + 1 + denominatorWritten;
         return true;
     }
+#endif
 }

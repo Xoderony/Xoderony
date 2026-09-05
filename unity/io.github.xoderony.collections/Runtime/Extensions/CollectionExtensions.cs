@@ -1,12 +1,15 @@
 using System;
 using System.Collections;
+#if NET10_0_OR_GREATER
 using System.Collections.Generic;
 using System.Runtime.InteropServices;
+#endif
 
 namespace Xoderony.Extensions;
 
 public static class CollectionExtensions {
 
+#if NET10_0_OR_GREATER
     extension<T>(T[]? array) {
 
         public bool IsNullOrEmpty => (array is null) || (array.Length == 0);
@@ -18,7 +21,17 @@ public static class CollectionExtensions {
         public bool IsNullOrEmpty => (collection is null) || (collection.Count == 0);
 
     }
+#else
+    public static bool IsNullOrEmpty<T>(this T[]? array) {
+        return (array is null) || (array.Length == 0);
+    }
 
+    public static bool IsNullOrEmpty<T>(this T? collection) where T : ICollection {
+        return (collection is null) || (collection.Count == 0);
+    }
+#endif
+
+#if NET10_0_OR_GREATER
     extension<T>(List<T>? list) {
 
         public Span<T> AsSpan() {
@@ -85,4 +98,5 @@ public static class CollectionExtensions {
             return ref CollectionsMarshal.GetValueRefOrAddDefault(dictionary, key, out exists);
         }
     }
+#endif
 }

@@ -20,7 +20,14 @@ public ref struct SpanIntSet {
         if (buffer.Length < 2) {
             throw new ArgumentException("Buffer length must be at least 2.", nameof(buffer));
         }
+#if NET10_0_OR_GREATER
         var usableLength = 1 << int.Log2(buffer.Length);
+#else
+        var usableLength = 2;
+        while (usableLength <= (buffer.Length >> 1)) {
+            usableLength <<= 1;
+        }
+#endif
         _slots = buffer[..usableLength];
         _capacity = usableLength >> 1;
         _slots.Fill(Empty);
@@ -48,7 +55,15 @@ public ref struct SpanIntSet {
         if (capacity > 5120) {
             throw new ArgumentException("Capacity must be less than or equal to 5120.", nameof(capacity));
         }
+#if NET10_0_OR_GREATER
         return 1 << (int.Log2((capacity * 2) - 1) + 1);
+#else
+        var bufferLength = 2;
+        while (bufferLength < (capacity * 2)) {
+            bufferLength <<= 1;
+        }
+        return bufferLength;
+#endif
     }
 
     public AddStatus Add(int item) {

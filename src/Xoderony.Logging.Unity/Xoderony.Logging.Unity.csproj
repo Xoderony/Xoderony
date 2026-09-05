@@ -1,7 +1,8 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <Import Project="Xoderony.Logging.Unity.local.props" Condition="Exists('Xoderony.Logging.Unity.local.props')" />
   <PropertyGroup>
-    <TargetFramework>net10.0</TargetFramework>
+    <TargetFramework />
+    <TargetFrameworks>net10.0;netstandard2.1</TargetFrameworks>
     <RootNamespace>Xoderony.Logging</RootNamespace>
     <AssemblyName>Xoderony.Logging.Unity</AssemblyName>
     <PackageId>Xoderony.Logging.Unity</PackageId>
@@ -17,12 +18,12 @@
       <HintPath>$(UnityManagedPath)\UnityEngine.CoreModule.dll</HintPath>
       <Private>false</Private>
     </Reference>
-    <Reference Include="UnityEngine.SharedInternalsModule">
+    <Reference Include="UnityEngine.SharedInternalsModule" Condition="Exists('$(UnityManagedPath)\UnityEngine.SharedInternalsModule.dll')">
       <HintPath>$(UnityManagedPath)\UnityEngine.SharedInternalsModule.dll</HintPath>
       <Private>false</Private>
     </Reference>
   </ItemGroup>
-  <Target Name="ValidateUnityManagedPath" BeforeTargets="ResolveAssemblyReferences" Condition="!Exists('$(UnityManagedPath)\UnityEngine.CoreModule.dll') Or !Exists('$(UnityManagedPath)\UnityEngine.SharedInternalsModule.dll')">
+  <Target Name="ValidateUnityManagedPath" BeforeTargets="ResolveAssemblyReferences" Condition="!Exists('$(UnityManagedPath)\UnityEngine.CoreModule.dll')">
     <Error Text="Set UnityManagedPath in src/Xoderony.Logging.Unity/Xoderony.Logging.Unity.local.props to the Editor/Data/Managed/UnityEngine directory of an installed Unity Editor." />
   </Target>
 </Project>

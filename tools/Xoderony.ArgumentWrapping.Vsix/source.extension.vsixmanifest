@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<PackageManifest Version="2.0.0" xmlns="http://schemas.microsoft.com/developer/vsx-schema/2011" xmlns:d="http://schemas.microsoft.com/developer/vsx-schema-design/2011">
+  <Metadata>
+    <Identity Id="Xoderony.ArgumentWrapping" Version="0.4.0" Language="zh-CN" Publisher="Xoderony" />
+    <DisplayName>Xoderony Argument Wrapping</DisplayName>
+    <Description xml:space="preserve">规范已换行的调用实参布局与缩进，保留用户的单行布局。</Description>
+  </Metadata>
+  <Installation InstalledByMsi="false">
+    <InstallationTarget Id="Microsoft.VisualStudio.Community" Version="[17.0,)">
+      <ProductArchitecture>amd64</ProductArchitecture>
+    </InstallationTarget>
+  </Installation>
+  <Prerequisites>
+    <Prerequisite Id="Microsoft.VisualStudio.Component.CoreEditor" Version="[17.14,)" DisplayName="Visual Studio core editor" />
+  </Prerequisites>
+  <Assets>
+    <Asset Type="Microsoft.VisualStudio.Analyzer" Path="Analyzers\Xoderony.ArgumentWrapping.dll" />
+    <Asset Type="Microsoft.VisualStudio.MefComponent" Path="Analyzers\Xoderony.ArgumentWrapping.CodeFixes.dll" />
+  </Assets>
+</PackageManifest>

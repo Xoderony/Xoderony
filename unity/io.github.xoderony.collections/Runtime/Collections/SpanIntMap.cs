@@ -1,5 +1,9 @@
 using System;
+#if NET10_0_OR_GREATER
 using System.Runtime.CompilerServices;
+#else
+using System.Runtime.InteropServices;
+#endif
 
 namespace Xoderony.Collections;
 
@@ -21,7 +25,14 @@ public ref struct SpanIntMap<TValue> where TValue : unmanaged {
         if (buffer.Length < 2) {
             throw new ArgumentException("Buffer length must be at least 2.", nameof(buffer));
         }
+#if NET10_0_OR_GREATER
         var usableLength = 1 << int.Log2(buffer.Length);
+#else
+        var usableLength = 2;
+        while (usableLength <= (buffer.Length >> 1)) {
+            usableLength <<= 1;
+        }
+#endif
         _entries = buffer[..usableLength];
         _capacity = usableLength >> 1;
         _entries.Clear();
@@ -47,7 +58,15 @@ public ref struct SpanIntMap<TValue> where TValue : unmanaged {
         if (capacity > 5120) {
             throw new ArgumentException("Capacity must be less than or equal to 5120.", nameof(capacity));
         }
+#if NET10_0_OR_GREATER
         return 1 << (int.Log2((capacity * 2) - 1) + 1);
+#else
+        var bufferLength = 2;
+        while (bufferLength < (capacity * 2)) {
+            bufferLength <<= 1;
+        }
+        return bufferLength;
+#endif
     }
 
     public AddStatus Add(int key, TValue value) {
@@ -148,7 +167,11 @@ public ref struct SpanIntMap<TValue> where TValue : unmanaged {
             if (entry.State == EntryState.Unused) {
                 if (IsFull) {
                     status = GetOrAddStatus.Full;
+#if NET10_0_OR_GREATER
                     return ref Unsafe.NullRef<TValue>();
+#else
+                    return ref MemoryMarshal.GetReference(Span<TValue>.Empty);
+#endif
                 }
                 entry.Key = key;
                 entry.Value = default;

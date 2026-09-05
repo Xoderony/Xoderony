@@ -1,0 +1,39 @@
+#if NET10_0_OR_GREATER
+using System.Buffers.Binary;
+#else
+using BinaryPrimitives = Xoderony.Serialization.Unity.LittleEndianPrimitives;
+#endif
+using UnityEngine;
+
+namespace Xoderony.Serialization.Unity;
+
+/// <summary>按 x、y、width、height 顺序，以小端 float 编解码 Rect，保留宽高符号。</summary>
+public readonly struct RectCodec
+#if NET10_0_OR_GREATER
+    : ISpanCodec<Rect>
+#endif
+{
+
+    public const int ByteCount = 16;
+
+    public static void Encode(ref SpanWriter writer, Rect value) {
+        var destination = writer.Destination.Slice(writer.Position, ByteCount);
+        BinaryPrimitives.WriteSingleLittleEndian(destination, value.x);
+        BinaryPrimitives.WriteSingleLittleEndian(destination[4..], value.y);
+        BinaryPrimitives.WriteSingleLittleEndian(destination[8..], value.width);
+        BinaryPrimitives.WriteSingleLittleEndian(destination[12..], value.height);
+        writer.Position += ByteCount;
+    }
+
+    public static Rect Decode(ref SpanReader reader) {
+        var source = reader.Source.Slice(reader.Position, ByteCount);
+        var value = new Rect(
+            BinaryPrimitives.ReadSingleLittleEndian(source),
+            BinaryPrimitives.ReadSingleLittleEndian(source[4..]),
+            BinaryPrimitives.ReadSingleLittleEndian(source[8..]),
+            BinaryPrimitives.ReadSingleLittleEndian(source[12..])
+        );
+        reader.Position += ByteCount;
+        return value;
+    }
+}

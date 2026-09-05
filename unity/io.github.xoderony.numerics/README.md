@@ -25,3 +25,9 @@ https://github.com/Xoderony/Xoderony.git?path=unity/io.github.xoderony.numerics
 ## 从 Core 迁移
 
 这些类型从 Xoderony.Core 移入本程序集，类型名和命名空间保持不变。调用方改为引用 Xoderony.Numerics 并重新编译。
+
+## netstandard2.1 DLL 兼容版
+
+.NET 项目同时生成 `net10.0` 和 `netstandard2.1`；Unity 6000.7 使用兼容版 DLL。Q16 的存储布局、构造、运算符、转换、比较、`ToString` 与 UTF-16 `TryFormat` 保持一致。
+
+泛型数学接口、`NumberExtensions`、UTF-8 `TryFormat` 及新格式化接口仅在 .NET 10 提供；兼容版实现 `IFormattable`，保留具体类型的 UTF-16 格式化方法。UPM 源码安装仍面向 Unity 7。

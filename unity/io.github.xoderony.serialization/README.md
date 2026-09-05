@@ -27,3 +27,9 @@ https://github.com/Xoderony/Xoderony.git?path=unity/io.github.xoderony.serializa
 ## 从 Core 迁移
 
 这些类型从 Xoderony.Core 移入本程序集，类型名、命名空间和二进制读写行为保持不变。调用方改为引用 Xoderony.Serialization 并重新编译。
+
+## netstandard2.1 DLL 兼容版
+
+.NET 项目同时生成 `net10.0` 和 `netstandard2.1`；Unity 6000.7 使用兼容版 DLL。基础读写、字节序、长度前缀与本机布局约定保持一致。
+
+`ISpanCodec<T>` 和泛型 `SpanCodecExtensions` 仅在 .NET 10 提供。兼容版通过 `NativeLayoutCodec<T>.Encode(ref writer, value)` / `Decode(ref reader)` 或具体 codec 的同名静态方法调用，不要求创建 codec 实例。UPM 源码安装仍面向 Unity 7。

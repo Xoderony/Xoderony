@@ -6,6 +6,7 @@
 
 - Xoderony.Channels / io.github.xoderony.channels：委托订阅与分发通道、共享值读写通道。
 - Xoderony.Serialization / io.github.xoderony.serialization：二进制 Span Reader/Writer 与 Codec。
+- Xoderony.Serialization.Unity / io.github.xoderony.serialization.unity：可选的 Unity 值类型二进制 Codec，单向依赖 Serialization；详见[使用与数据格式](unity/io.github.xoderony.serialization.unity/README.md)。
 - Xoderony.ObjectPool / io.github.xoderony.objectpool：对象池契约、归还作用域与集合池。
 - Xoderony.Collections / io.github.xoderony.collections：固定容量 Span 集合与 BCL 集合扩展。
 - Xoderony.Numerics / io.github.xoderony.numerics：Q16 定点数与泛型数值扩展。
@@ -25,6 +26,7 @@ Channels、Serialization、ObjectPool、Collections、Numerics 和 Text 均不�
 ```text
 https://github.com/Xoderony/Xoderony.git?path=unity/io.github.xoderony.channels
 https://github.com/Xoderony/Xoderony.git?path=unity/io.github.xoderony.serialization
+https://github.com/Xoderony/Xoderony.git?path=unity/io.github.xoderony.serialization.unity
 https://github.com/Xoderony/Xoderony.git?path=unity/io.github.xoderony.objectpool
 https://github.com/Xoderony/Xoderony.git?path=unity/io.github.xoderony.collections
 https://github.com/Xoderony/Xoderony.git?path=unity/io.github.xoderony.numerics
@@ -45,6 +47,10 @@ SpanExtensions 已删除，调用方改用 System.Runtime.InteropServices.Memory
 
 - Unity 7（`7000.0`）或更高版本
 - .NET 10
+
+## 性能基准
+
+[Xoderony.Benchmarks](benchmarks/Xoderony.Benchmarks/README.md) 提供可扩展的 .NET 10 基准入口，目前包含 Vector3 的逐字段、整体内存、固定偏移与数组批量读写比较。
 
 ## 许可证
 
