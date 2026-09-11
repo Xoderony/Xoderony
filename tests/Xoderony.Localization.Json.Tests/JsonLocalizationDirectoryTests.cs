@@ -6,7 +6,7 @@ using Xunit;
 
 namespace Xoderony.Localization.Json.Tests;
 
-public sealed class JsonLocaleTableCollectionTests {
+public sealed class JsonLocalizationDirectoryTests {
 
     private static readonly CultureInfo English = CultureInfo.GetCultureInfo("en-US");
     private static readonly CultureInfo SimplifiedChinese = CultureInfo.GetCultureInfo("zh-CN");
@@ -15,7 +15,7 @@ public sealed class JsonLocaleTableCollectionTests {
     public void LoadDirectoryUsesSharedKeysAndFlatLocaleValues() {
         var directoryPath = CreateTempDirectory();
         try {
-            WriteAllText(directoryPath, JsonLocaleTableCollection.KeysFileName, """
+            WriteAllText(directoryPath, JsonLocalizationDirectory.KeysFileName, """
                 {
                   "menu": {
                     "start": null,
@@ -35,7 +35,7 @@ public sealed class JsonLocaleTableCollectionTests {
                 }
                 """);
 
-            var collection = JsonLocaleTableCollection.LoadDirectory(directoryPath);
+            var collection = JsonLocalizationDirectory.LoadDirectory(directoryPath);
 
             Assert.Equal(["menu.quit", "menu.start"], collection.GetEntryKeys());
             Assert.Equal(string.Empty, collection.GetTranslation(English, "menu.quit"));
@@ -50,7 +50,7 @@ public sealed class JsonLocaleTableCollectionTests {
     public void StructuralChangesUpdateKeysAndEveryLocale() {
         var directoryPath = CreateTempDirectory();
         try {
-            WriteAllText(directoryPath, JsonLocaleTableCollection.KeysFileName, """
+            WriteAllText(directoryPath, JsonLocalizationDirectory.KeysFileName, """
                 {
                   "menu": {
                     "start": null
@@ -68,7 +68,7 @@ public sealed class JsonLocaleTableCollectionTests {
                 }
                 """);
 
-            var collection = JsonLocaleTableCollection.LoadDirectory(directoryPath);
+            var collection = JsonLocalizationDirectory.LoadDirectory(directoryPath);
             collection.AddGroup("menu", "settings");
             collection.AddEntry("menu.settings", "title");
             collection.SetTranslation(English, "menu.settings.title", "Settings");
@@ -87,10 +87,10 @@ public sealed class JsonLocaleTableCollectionTests {
     }
 
     [Fact]
-    public void CopyAndMoveAllocateLocalKeyOnConflict() {
+    public void CopyAndMoveUsesUnusedLocalKeyOnConflict() {
         var directoryPath = CreateTempDirectory();
         try {
-            WriteAllText(directoryPath, JsonLocaleTableCollection.KeysFileName, """
+            WriteAllText(directoryPath, JsonLocalizationDirectory.KeysFileName, """
                 {
                   "menu": {
                     "title": null
@@ -105,7 +105,7 @@ public sealed class JsonLocaleTableCollectionTests {
                 }
                 """);
 
-            var collection = JsonLocaleTableCollection.LoadDirectory(directoryPath);
+            var collection = JsonLocalizationDirectory.LoadDirectory(directoryPath);
 
             var copiedKey = collection.Copy("menu.title", "");
             Assert.Equal("title_1", copiedKey);
@@ -129,9 +129,9 @@ public sealed class JsonLocaleTableCollectionTests {
     public void LocaleLoadRejectsNonStringValues(string json) {
         var directoryPath = CreateTempDirectory();
         try {
-            WriteAllText(directoryPath, JsonLocaleTableCollection.KeysFileName, "{ \"menu\": { \"start\": null } }");
+            WriteAllText(directoryPath, JsonLocalizationDirectory.KeysFileName, "{ \"menu\": { \"start\": null } }");
             WriteAllText(directoryPath, "en-US.json", json);
-            Assert.Throws<InvalidDataException>(() => JsonLocaleTableCollection.LoadDirectory(directoryPath));
+            Assert.Throws<InvalidDataException>(() => JsonLocalizationDirectory.LoadDirectory(directoryPath));
         } finally {
             Directory.Delete(directoryPath, recursive: true);
         }
@@ -144,8 +144,8 @@ public sealed class JsonLocaleTableCollectionTests {
     public void KeysLoadRejectsNonNullNonObjectLeaves(string json) {
         var directoryPath = CreateTempDirectory();
         try {
-            WriteAllText(directoryPath, JsonLocaleTableCollection.KeysFileName, json);
-            Assert.Throws<InvalidDataException>(() => JsonLocaleTableCollection.LoadDirectory(directoryPath));
+            WriteAllText(directoryPath, JsonLocalizationDirectory.KeysFileName, json);
+            Assert.Throws<InvalidDataException>(() => JsonLocalizationDirectory.LoadDirectory(directoryPath));
         } finally {
             Directory.Delete(directoryPath, recursive: true);
         }
@@ -159,9 +159,9 @@ public sealed class JsonLocaleTableCollectionTests {
         var directoryPath = CreateTempDirectory();
         var filePath = Path.Combine(directoryPath, "en-US.json");
         try {
-            WriteAllText(directoryPath, JsonLocaleTableCollection.KeysFileName, "{ \"menu\": { \"start\": null } }");
+            WriteAllText(directoryPath, JsonLocalizationDirectory.KeysFileName, "{ \"menu\": { \"start\": null } }");
             File.WriteAllText(filePath, json);
-            Assert.Throws<InvalidDataException>(() => JsonLocaleTable.Load(English, filePath));
+            Assert.Throws<InvalidDataException>(() => JsonTranslations.Load(filePath));
         } finally {
             Directory.Delete(directoryPath, recursive: true);
         }
@@ -172,7 +172,7 @@ public sealed class JsonLocaleTableCollectionTests {
         var directoryPath = CreateTempDirectory();
         var filePath = Path.Combine(directoryPath, "zh-CN.json");
         try {
-            var collection = JsonLocaleTableCollection.LoadDirectory(directoryPath);
+            var collection = JsonLocalizationDirectory.LoadDirectory(directoryPath);
 
             Assert.Equal(0, collection.CultureCount);
             Assert.Empty(collection.GetEntryKeys());
@@ -186,9 +186,9 @@ public sealed class JsonLocaleTableCollectionTests {
             Assert.Equal([SimplifiedChinese], collection.GetCultures());
             Assert.Equal(["title"], collection.GetEntryKeys());
             Assert.True(File.Exists(filePath));
-            Assert.True(File.Exists(Path.Combine(directoryPath, JsonLocaleTableCollection.KeysFileName)));
+            Assert.True(File.Exists(Path.Combine(directoryPath, JsonLocalizationDirectory.KeysFileName)));
             Assert.Contains("标题", File.ReadAllText(filePath), StringComparison.Ordinal);
-            Assert.Contains("\"title\": null", File.ReadAllText(Path.Combine(directoryPath, JsonLocaleTableCollection.KeysFileName)), StringComparison.Ordinal);
+            Assert.Contains("\"title\": null", File.ReadAllText(Path.Combine(directoryPath, JsonLocalizationDirectory.KeysFileName)), StringComparison.Ordinal);
         } finally {
             Directory.Delete(directoryPath, recursive: true);
         }
@@ -199,7 +199,7 @@ public sealed class JsonLocaleTableCollectionTests {
         var directoryPath = CreateTempDirectory();
         var filePath = Path.Combine(directoryPath, "zh-CN.json");
         try {
-            WriteAllText(directoryPath, JsonLocaleTableCollection.KeysFileName, """
+            WriteAllText(directoryPath, JsonLocalizationDirectory.KeysFileName, """
                 {
                   "menu": {
                     "title": null
@@ -212,7 +212,7 @@ public sealed class JsonLocaleTableCollectionTests {
                 }
                 """);
 
-            var collection = JsonLocaleTableCollection.LoadDirectory(directoryPath);
+            var collection = JsonLocalizationDirectory.LoadDirectory(directoryPath);
             collection.SetTranslation(SimplifiedChinese, "menu.title", "本地化标题");
             collection.Save();
 
@@ -220,6 +220,62 @@ public sealed class JsonLocaleTableCollectionTests {
             Assert.Contains("\n  \"menu.title\":", source, StringComparison.Ordinal);
             Assert.Contains("本地化标题", source, StringComparison.Ordinal);
             Assert.EndsWith("\n", source, StringComparison.Ordinal);
+        } finally {
+            Directory.Delete(directoryPath, recursive: true);
+        }
+    }
+
+    [Fact]
+    public void KeysLoadAllowsNonSnakeCaseLocalKeys() {
+        var directoryPath = CreateTempDirectory();
+        try {
+            WriteAllText(directoryPath, JsonLocalizationDirectory.KeysFileName, """
+                {
+                  "Start": null
+                }
+                """);
+
+            var collection = JsonLocalizationDirectory.LoadDirectory(directoryPath);
+
+            Assert.Equal(["Start"], collection.GetEntryKeys());
+        } finally {
+            Directory.Delete(directoryPath, recursive: true);
+        }
+    }
+
+    [Theory]
+    [InlineData("{ \"\": null }")]
+    [InlineData("{ \"menu.start\": null }")]
+    public void KeysLoadRejectsEmptyOrDottedLocalKeys(string json) {
+        var directoryPath = CreateTempDirectory();
+        try {
+            WriteAllText(directoryPath, JsonLocalizationDirectory.KeysFileName, json);
+            Assert.Throws<InvalidDataException>(() => JsonLocalizationDirectory.LoadDirectory(directoryPath));
+        } finally {
+            Directory.Delete(directoryPath, recursive: true);
+        }
+    }
+
+    [Fact]
+    public void AddEntryAllowsNonSnakeCaseLocalKey() {
+        var directoryPath = CreateTempDirectory();
+        try {
+            var collection = JsonLocalizationDirectory.LoadDirectory(directoryPath);
+            collection.AddEntry(string.Empty, "Start");
+            Assert.Equal(["Start"], collection.GetEntryKeys());
+        } finally {
+            Directory.Delete(directoryPath, recursive: true);
+        }
+    }
+
+    [Theory]
+    [InlineData("")]
+    [InlineData("menu.start")]
+    public void AddEntryRejectsEmptyOrDottedLocalKey(string localKey) {
+        var directoryPath = CreateTempDirectory();
+        try {
+            var collection = JsonLocalizationDirectory.LoadDirectory(directoryPath);
+            Assert.Throws<ArgumentException>(() => collection.AddEntry(string.Empty, localKey));
         } finally {
             Directory.Delete(directoryPath, recursive: true);
         }

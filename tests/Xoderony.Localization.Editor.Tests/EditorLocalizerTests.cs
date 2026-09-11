@@ -14,7 +14,7 @@ public sealed class EditorLocalizerTests : IDisposable {
 
     public EditorLocalizerTests() {
         Directory.CreateDirectory(_directoryPath);
-        File.WriteAllText(Path.Combine(_directoryPath, JsonLocaleTableCollection.KeysFileName), """
+        File.WriteAllText(Path.Combine(_directoryPath, JsonLocalizationDirectory.KeysFileName), """
             {
               "greeting": null,
               "fallback": null,

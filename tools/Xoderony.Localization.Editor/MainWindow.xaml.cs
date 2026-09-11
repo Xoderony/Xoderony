@@ -118,7 +118,7 @@ public partial class MainWindow : Window {
     }
 
     private void Save(object sender, RoutedEventArgs e) {
-        if (_workspace.Tables is null) {
+        if (_workspace.Directory is null) {
             return;
         }
 
@@ -130,8 +130,8 @@ public partial class MainWindow : Window {
     }
 
     private void GenerateKeys(object sender, RoutedEventArgs e) {
-        var tables = _workspace.Tables;
-        if (tables is null) {
+        var directory = _workspace.Directory;
+        if (directory is null) {
             return;
         }
 
@@ -155,7 +155,7 @@ public partial class MainWindow : Window {
 
         string source;
         try {
-            source = StringTableKeyGenerator.Generate(tables.GetEntryKeys(), namespaceName, typeName);
+            source = StringTableKeyGenerator.Generate(directory.GetEntryKeys(), namespaceName, typeName);
         } catch (ArgumentException exception) {
             ShowError(exception.Message);
             return;
@@ -180,8 +180,8 @@ public partial class MainWindow : Window {
     }
 
     private bool ConfirmDiscardChanges() {
-        var tables = _workspace.Tables;
-        if (tables is null || !tables.IsDirty) {
+        var directory = _workspace.Directory;
+        if (directory is null || !directory.IsDirty) {
             return true;
         }
 
@@ -198,7 +198,7 @@ public partial class MainWindow : Window {
 
         if (result == MessageBoxResult.Yes) {
             Save(this, new RoutedEventArgs());
-            return !tables.IsDirty;
+            return !directory.IsDirty;
         }
 
         return true;
@@ -321,12 +321,12 @@ public partial class MainWindow : Window {
         var items = menu.Items;
         items.Clear();
 
-        var tables = _workspace.Tables;
-        if (tables?.IsDirty == true) {
+        var directory = _workspace.Directory;
+        if (directory?.IsDirty == true) {
             AddMenuItem(items, _localizer[EditorStringKeys.Toolbar.Save], Save, "Ctrl+S");
         }
 
-        if (tables is null) {
+        if (directory is null) {
             return;
         }
 
@@ -334,7 +334,7 @@ public partial class MainWindow : Window {
             items.Add(new Separator());
         }
         AddMenuItem(items, _localizer[EditorStringKeys.Context.AddLocale], AddLocale);
-        if (tables.CultureCount > 0) {
+        if (directory.CultureCount > 0) {
             items.Add(new Separator());
             AddMenuItem(items, _localizer[EditorStringKeys.Toolbar.GenerateKeys], GenerateKeys);
         }
@@ -347,7 +347,7 @@ public partial class MainWindow : Window {
 
         var items = menu.Items;
         items.Clear();
-        if (_workspace.Tables is not { CultureCount: > 0 }) {
+        if (_workspace.Directory is not { CultureCount: > 0 }) {
             return;
         }
 
@@ -484,36 +484,34 @@ public partial class MainWindow : Window {
     }
 
     private void AddGroup(object sender, RoutedEventArgs e) {
-        if (_workspace.Tables is null) {
+        if (_workspace.Directory is null) {
             return;
         }
 
-        var localKey = Prompt(_localizer[EditorStringKeys.Dialog.AddGroupTitle], _localizer[EditorStringKeys.Dialog.AddGroupMessage]);
-        if (localKey is null) {
+        if (!TryPromptLocalKey(_localizer[EditorStringKeys.Dialog.AddGroupTitle], _localizer[EditorStringKeys.Dialog.AddGroupMessage], out var localKey)) {
             return;
         }
 
         var key = JsonKeyNode.CombineKey(_currentGroupKey, localKey);
-        ChangeStructure(tables => tables.AddGroup(_currentGroupKey, localKey), () => key);
+        ChangeStructure(directory => directory.AddGroup(_currentGroupKey, localKey), () => key);
     }
 
     private void AddEntry(object sender, RoutedEventArgs e) {
-        if (_workspace.Tables is null) {
+        if (_workspace.Directory is null) {
             return;
         }
 
-        var localKey = Prompt(_localizer[EditorStringKeys.Dialog.AddEntryTitle], _localizer[EditorStringKeys.Dialog.AddEntryMessage]);
-        if (localKey is null) {
+        if (!TryPromptLocalKey(_localizer[EditorStringKeys.Dialog.AddEntryTitle], _localizer[EditorStringKeys.Dialog.AddEntryMessage], out var localKey)) {
             return;
         }
 
         var key = JsonKeyNode.CombineKey(_currentGroupKey, localKey);
-        ChangeStructure(tables => tables.AddEntry(_currentGroupKey, localKey), () => key);
+        ChangeStructure(directory => directory.AddEntry(_currentGroupKey, localKey), () => key);
     }
 
     private void AddLocale(object sender, RoutedEventArgs e) {
         var directoryPath = _workspace.DirectoryPath;
-        if (_workspace.Tables is null || directoryPath is null) {
+        if (_workspace.Directory is null || directoryPath is null) {
             return;
         }
 
@@ -525,7 +523,7 @@ public partial class MainWindow : Window {
         try {
             var culture = CultureInfo.GetCultureInfo(cultureName);
             var filePath = Path.Combine(directoryPath, $"{culture.Name}.json");
-            ChangeStructure(tables => tables.AddLocale(culture, filePath), rebuildColumns: true);
+            ChangeStructure(directory => directory.AddLocale(culture, filePath), rebuildColumns: true);
         } catch (CultureNotFoundException exception) {
             ShowError(exception.Message);
         }
@@ -537,47 +535,47 @@ public partial class MainWindow : Window {
         }
 
         var oldKey = node.FullKey;
-        var localKey = Prompt(_localizer[EditorStringKeys.Dialog.RenameTitle], _localizer[EditorStringKeys.Dialog.RenameMessage], node.LocalKey);
-        if (localKey is null || string.Equals(localKey, node.LocalKey, StringComparison.Ordinal)) {
+        if (!TryPromptLocalKey(_localizer[EditorStringKeys.Dialog.RenameTitle], _localizer[EditorStringKeys.Dialog.RenameMessage], out var localKey, node.LocalKey)
+            || string.Equals(localKey, node.LocalKey, StringComparison.Ordinal)) {
             return;
         }
 
         var newKey = JsonKeyNode.CombineKey(JsonKeyNode.GetParentKey(oldKey), localKey);
-        ChangeStructure(tables => tables.Rename(oldKey, localKey), () => newKey);
+        ChangeStructure(directory => directory.Rename(oldKey, localKey), () => newKey);
     }
 
     private void ClipboardCopy(object sender, RoutedEventArgs e) {
-        var tables = _workspace.Tables;
-        if (tables is null || !TryGetSelectedNode(out var node)) {
+        var directory = _workspace.Directory;
+        if (directory is null || !TryGetSelectedNode(out var node)) {
             return;
         }
 
         try {
-            LocalizationClipboard.Set(tables, node);
+            LocalizationClipboard.Set(directory, node);
         } catch (ExternalException exception) {
             ShowError(exception.Message);
         }
     }
 
     private void ClipboardCut(object sender, RoutedEventArgs e) {
-        var tables = _workspace.Tables;
-        if (tables is null || !TryGetSelectedNode(out var node)) {
+        var directory = _workspace.Directory;
+        if (directory is null || !TryGetSelectedNode(out var node)) {
             return;
         }
 
         try {
-            LocalizationClipboard.Set(tables, node);
+            LocalizationClipboard.Set(directory, node);
         } catch (ExternalException exception) {
             ShowError(exception.Message);
             return;
         }
 
         var key = node.FullKey;
-        ChangeStructure(tables => tables.Remove(key));
+        ChangeStructure(directory => directory.Remove(key));
     }
 
     private void ClipboardPaste(object sender, RoutedEventArgs e) {
-        if (_workspace.Tables is null) {
+        if (_workspace.Directory is null) {
             return;
         }
 
@@ -587,22 +585,22 @@ public partial class MainWindow : Window {
                 return;
             }
 
-            var targetLocalKey = GetCurrentGroup().AllocateLocalKey(payload.LocalKey);
+            var targetLocalKey = GetCurrentGroup().GetUnusedLocalKey(payload.LocalKey);
             var targetKey = JsonKeyNode.CombineKey(_currentGroupKey, targetLocalKey);
-            ChangeStructure(tables => LocalizationClipboard.Paste(tables, _currentGroupKey, targetLocalKey, payload), () => targetKey);
+            ChangeStructure(directory => LocalizationClipboard.Paste(directory, _currentGroupKey, targetLocalKey, payload), () => targetKey);
         } catch (ExternalException exception) {
             ShowError(exception.Message);
         }
     }
 
     private void CopyToSelection(object sender, RoutedEventArgs e) {
-        var tables = _workspace.Tables;
-        if (tables is null || !TryGetSelectedNode(out var node)) {
+        var directory = _workspace.Directory;
+        if (directory is null || !TryGetSelectedNode(out var node)) {
             return;
         }
 
         var dialog = new MoveDestinationDialog(
-            tables.RootKeyGroup,
+            directory.RootKeyGroup,
             node,
             _localizer[EditorStringKeys.Dialog.MoveRoot],
             _localizer[EditorStringKeys.Dialog.CopyTitle],
@@ -616,17 +614,17 @@ public partial class MainWindow : Window {
         }
 
         string? copiedKey = null;
-        ChangeStructure(tables => copiedKey = tables.Copy(node.FullKey, dialog.SelectedGroupKey), () => copiedKey);
+        ChangeStructure(directory => copiedKey = directory.Copy(node.FullKey, dialog.SelectedGroupKey), () => copiedKey);
     }
 
     private void MoveSelection(object sender, RoutedEventArgs e) {
-        var tables = _workspace.Tables;
-        if (tables is null || !TryGetSelectedNode(out var node)) {
+        var directory = _workspace.Directory;
+        if (directory is null || !TryGetSelectedNode(out var node)) {
             return;
         }
 
         var dialog = new MoveDestinationDialog(
-            tables.RootKeyGroup,
+            directory.RootKeyGroup,
             node,
             _localizer[EditorStringKeys.Dialog.MoveRoot],
             _localizer[EditorStringKeys.Dialog.MoveTitle],
@@ -640,7 +638,7 @@ public partial class MainWindow : Window {
         }
 
         string? movedKey = null;
-        ChangeStructure(tables => movedKey = tables.Move(node.FullKey, dialog.SelectedGroupKey), () => movedKey);
+        ChangeStructure(directory => movedKey = directory.Move(node.FullKey, dialog.SelectedGroupKey), () => movedKey);
     }
 
     private void Remove(object sender, RoutedEventArgs e) {
@@ -660,7 +658,7 @@ public partial class MainWindow : Window {
         }
 
         var key = node.FullKey;
-        ChangeStructure(tables => tables.Remove(key));
+        ChangeStructure(directory => directory.Remove(key));
     }
 
     private bool TryGetSelectedNode([NotNullWhen(true)] out JsonKeyNode? node) {
@@ -673,8 +671,8 @@ public partial class MainWindow : Window {
         return false;
     }
 
-    private bool ChangeStructure(Action<JsonLocaleTableCollection> change, Func<string?>? getSelectedKey = null, bool rebuildColumns = false) {
-        if (_workspace.Tables is null) {
+    private bool ChangeStructure(Action<JsonLocalizationDirectory> change, Func<string?>? getSelectedKey = null, bool rebuildColumns = false) {
+        if (_workspace.Directory is null) {
             return false;
         }
 
@@ -700,14 +698,14 @@ public partial class MainWindow : Window {
         TableGrid.Columns.Clear();
         _cultureNameToColumn.Clear();
         _nameColumn = null;
-        var tables = _workspace.Tables;
-        if (tables is null) {
+        var directory = _workspace.Directory;
+        if (directory is null) {
             return;
         }
 
         _nameColumn = CreateNameColumn();
         TableGrid.Columns.Add(_nameColumn);
-        foreach (var culture in tables.GetCultures()) {
+        foreach (var culture in directory.GetCultures()) {
             var column = CreateValueColumn(culture);
             _cultureNameToColumn.Add(culture.Name, column);
             TableGrid.Columns.Add(column);
@@ -739,8 +737,8 @@ public partial class MainWindow : Window {
     }
 
     private void RefreshRows(string? selectedKey = null, GridState? previousState = null) {
-        var tables = _workspace.Tables;
-        if (tables is null) {
+        var directory = _workspace.Directory;
+        if (directory is null) {
             TableGrid.ItemsSource = null;
             return;
         }
@@ -785,8 +783,8 @@ public partial class MainWindow : Window {
 
         void AddRow(JsonKeyNode node, string displayName) {
             var row = new LocalizationRow(node, displayName);
-            foreach (var culture in tables.GetCultures()) {
-                var value = node is JsonKeyEntry ? tables.GetTranslation(culture, node.FullKey) : string.Empty;
+            foreach (var culture in directory.GetCultures()) {
+                var value = node is JsonKeyEntry ? directory.GetTranslation(culture, node.FullKey) : string.Empty;
                 row.CultureNameToTranslation.Add(culture.Name, value);
             }
 
@@ -799,8 +797,8 @@ public partial class MainWindow : Window {
             }
 
             if (node is JsonKeyEntry) {
-                foreach (var culture in tables.GetCultures()) {
-                    if (tables.GetTranslation(culture, node.FullKey).Contains(searchText, StringComparison.OrdinalIgnoreCase)) {
+                foreach (var culture in directory.GetCultures()) {
+                    if (directory.GetTranslation(culture, node.FullKey).Contains(searchText, StringComparison.OrdinalIgnoreCase)) {
                         return true;
                     }
                 }
@@ -811,18 +809,18 @@ public partial class MainWindow : Window {
     }
 
     private JsonKeyGroup GetCurrentGroup() {
-        var tables = _workspace.Tables;
-        Debug.Assert(tables is not null);
-        return tables.RootKeyGroup.GetGroup(_currentGroupKey);
+        var directory = _workspace.Directory;
+        Debug.Assert(directory is not null);
+        return directory.RootKeyGroup.GetGroup(_currentGroupKey);
     }
 
     private CultureInfo? GetColumnCulture(DataGridColumn column) {
-        var tables = _workspace.Tables;
-        if (tables is null) {
+        var directory = _workspace.Directory;
+        if (directory is null) {
             return null;
         }
 
-        foreach (var culture in tables.GetCultures()) {
+        foreach (var culture in directory.GetCultures()) {
             if (_cultureNameToColumn.TryGetValue(culture.Name, out var cultureColumn) && ReferenceEquals(cultureColumn, column)) {
                 return culture;
             }
@@ -873,7 +871,7 @@ public partial class MainWindow : Window {
     }
 
     private void EditTranslation(LocalizationRow row, CultureInfo culture) {
-        if (_workspace.Tables is null) {
+        if (_workspace.Directory is null) {
             return;
         }
 
@@ -897,7 +895,7 @@ public partial class MainWindow : Window {
     }
 
     private void SelectPlaceholderReferenceCulture(CultureInfo culture) {
-        Debug.Assert(_workspace.Tables is not null);
+        Debug.Assert(_workspace.Directory is not null);
         _workspace.SetPlaceholderReferenceCulture(culture);
         var referenceCultureName = _preferences.Get<string?>(ValidationPreferenceKeys.PlaceholderReferenceCulture, null);
         if (!string.Equals(referenceCultureName, culture.Name, StringComparison.OrdinalIgnoreCase)) {
@@ -926,7 +924,7 @@ public partial class MainWindow : Window {
         if (issues is null || referenceCulture is null) {
             ValidationGrid.ItemsSource = null;
             ValidationGrid.Visibility = Visibility.Collapsed;
-            ValidationEmptyText.Text = _localizer[_workspace.Tables is null
+            ValidationEmptyText.Text = _localizer[_workspace.Directory is null
                 ? EditorStringKeys.Validation.NoProject
                 : EditorStringKeys.Validation.NoLocales];
             ValidationEmptyText.Visibility = Visibility.Visible;
@@ -958,18 +956,18 @@ public partial class MainWindow : Window {
         ValidationCompletionText.Text = BuildCompletionText();
 
         string BuildCompletionText() {
-            var tables = _workspace.Tables;
-            Debug.Assert(tables is not null);
+            var directory = _workspace.Directory;
+            Debug.Assert(directory is not null);
             var entryKeys = new List<string>();
-            foreach (var entryKey in tables.GetEntryKeys()) {
+            foreach (var entryKey in directory.GetEntryKeys()) {
                 entryKeys.Add(entryKey);
             }
 
-            var items = new List<string>(tables.CultureCount);
-            foreach (var culture in tables.GetCultures()) {
+            var items = new List<string>(directory.CultureCount);
+            foreach (var culture in directory.GetCultures()) {
                 var translatedCount = 0;
                 foreach (var entryKey in entryKeys) {
-                    if (tables.GetTranslation(culture, entryKey).Length > 0) {
+                    if (directory.GetTranslation(culture, entryKey).Length > 0) {
                         translatedCount++;
                     }
                 }
@@ -985,8 +983,8 @@ public partial class MainWindow : Window {
     }
 
     private void RebuildValidationFilters() {
-        var tables = _workspace.Tables;
-        if (_validationResults.Issues is null || tables is null) {
+        var directory = _workspace.Directory;
+        if (_validationResults.Issues is null || directory is null) {
             return;
         }
 
@@ -995,7 +993,7 @@ public partial class MainWindow : Window {
             ValidationReferenceLocaleComboBox.Items.Clear();
             var referenceCultureName = _workspace.PlaceholderReferenceCulture?.Name;
             var selectedReferenceIndex = -1;
-            foreach (var culture in tables.GetCultures()) {
+            foreach (var culture in directory.GetCultures()) {
                 ValidationReferenceLocaleComboBox.Items.Add(new ComboBoxItem {
                     Content = $"{culture.NativeName} ({culture.Name})",
                     Tag = culture
@@ -1027,7 +1025,7 @@ public partial class MainWindow : Window {
                 Content = _localizer[EditorStringKeys.Validation.FilterAll]
             });
             var selectedCultureIndex = 0;
-            foreach (var culture in tables.GetCultures()) {
+            foreach (var culture in directory.GetCultures()) {
                 ValidationLocaleFilterComboBox.Items.Add(new ComboBoxItem {
                     Content = $"{culture.NativeName} ({culture.Name})",
                     Tag = culture.Name
@@ -1078,14 +1076,14 @@ public partial class MainWindow : Window {
     }
 
     private void ActivateSelectedValidationIssue() {
-        var tables = _workspace.Tables;
-        if (tables is null || ValidationGrid.SelectedItem is not ValidationIssueRow row) {
+        var directory = _workspace.Directory;
+        if (directory is null || ValidationGrid.SelectedItem is not ValidationIssueRow row) {
             return;
         }
 
         var issue = row.Issue;
         if (issue.Kind == JsonLocalizationIssueKind.UnexpectedTranslationKey
-            || !tables.RootKeyGroup.TryGet(issue.EntryKey, out var node)
+            || !directory.RootKeyGroup.TryGet(issue.EntryKey, out var node)
             || node is not JsonKeyEntry) {
             MessageBox.Show(
                 this,
@@ -1121,6 +1119,21 @@ public partial class MainWindow : Window {
             TableGrid.Focus();
             break;
         }
+    }
+
+    private bool TryPromptLocalKey(string title, string message, [NotNullWhen(true)] out string? localKey, string initialValue = "") {
+        localKey = Prompt(title, message, initialValue);
+        if (localKey is null) {
+            return false;
+        }
+
+        if (!JsonKeyNode.IsLowerSnakeCaseLocalKey(localKey)) {
+            ShowError($"'{localKey}' is not a valid lower_snake_case local key.");
+            localKey = null;
+            return false;
+        }
+
+        return true;
     }
 
     private string? Prompt(string title, string message, string initialValue = "") {

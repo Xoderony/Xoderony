@@ -7,59 +7,59 @@ namespace Xoderony.Localization.Json;
 
 public static class JsonLocalizationValidation {
 
-    public static IReadOnlyList<JsonLocalizationIssue> Validate(JsonLocaleTableCollection collection, CultureInfo placeholderReferenceCulture) {
-        Debug.Assert(collection is not null);
+    public static IReadOnlyList<JsonLocalizationIssue> Validate(JsonLocalizationDirectory directory, CultureInfo placeholderReferenceCulture) {
+        Debug.Assert(directory is not null);
         Debug.Assert(placeholderReferenceCulture is not null);
 
-        placeholderReferenceCulture = ResolvePlaceholderReferenceCulture(collection, placeholderReferenceCulture);
+        placeholderReferenceCulture = ResolvePlaceholderReferenceCulture(directory, placeholderReferenceCulture);
 
         var entryKeys = new HashSet<string>(StringComparer.Ordinal);
-        foreach (var entryKey in collection.GetEntryKeys()) {
+        foreach (var entryKey in directory.GetEntryKeys()) {
             entryKeys.Add(entryKey);
         }
 
         var issues = new List<JsonLocalizationIssue>();
-        CollectMissingTranslations(collection, entryKeys, issues);
-        CollectInvalidFormatStrings(collection, entryKeys, issues);
-        CollectPlaceholderMismatches(collection, entryKeys, placeholderReferenceCulture, issues);
-        CollectUnexpectedTranslationKeys(collection, entryKeys, issues);
+        CollectMissingTranslations(directory, entryKeys, issues);
+        CollectInvalidFormatStrings(directory, entryKeys, issues);
+        CollectPlaceholderMismatches(directory, entryKeys, placeholderReferenceCulture, issues);
+        CollectUnexpectedTranslationKeys(directory, entryKeys, issues);
 
         SortIssues(issues);
 
         return issues;
     }
 
-    public static IReadOnlyList<JsonLocalizationIssue> ValidateEntry(JsonLocaleTableCollection collection, CultureInfo placeholderReferenceCulture, string entryKey) {
-        Debug.Assert(collection is not null);
+    public static IReadOnlyList<JsonLocalizationIssue> ValidateEntry(JsonLocalizationDirectory directory, CultureInfo placeholderReferenceCulture, string entryKey) {
+        Debug.Assert(directory is not null);
         Debug.Assert(placeholderReferenceCulture is not null);
         if (entryKey is null) {
             throw new ArgumentNullException(nameof(entryKey));
         }
 
-        placeholderReferenceCulture = ResolvePlaceholderReferenceCulture(collection, placeholderReferenceCulture);
-        if (!collection.RootKeyGroup.TryGet(entryKey, out var node) || node is not JsonKeyEntry) {
-            throw new ArgumentException($"The entry key '{entryKey}' is not part of this locale table collection.", nameof(entryKey));
+        placeholderReferenceCulture = ResolvePlaceholderReferenceCulture(directory, placeholderReferenceCulture);
+        if (!directory.RootKeyGroup.TryGet(entryKey, out var node) || node is not JsonKeyEntry) {
+            throw new ArgumentException($"The entry key '{entryKey}' is not part of this localization directory.", nameof(entryKey));
         }
 
         var entryKeys = new HashSet<string>(StringComparer.Ordinal) { entryKey };
         var issues = new List<JsonLocalizationIssue>();
-        CollectMissingTranslations(collection, entryKeys, issues);
-        CollectInvalidFormatStrings(collection, entryKeys, issues);
-        CollectPlaceholderMismatches(collection, entryKeys, placeholderReferenceCulture, issues);
+        CollectMissingTranslations(directory, entryKeys, issues);
+        CollectInvalidFormatStrings(directory, entryKeys, issues);
+        CollectPlaceholderMismatches(directory, entryKeys, placeholderReferenceCulture, issues);
         SortIssues(issues);
 
         return issues;
     }
 
-    private static CultureInfo ResolvePlaceholderReferenceCulture(JsonLocaleTableCollection collection, CultureInfo placeholderReferenceCulture) {
-        foreach (var culture in collection.GetCultures()) {
+    private static CultureInfo ResolvePlaceholderReferenceCulture(JsonLocalizationDirectory directory, CultureInfo placeholderReferenceCulture) {
+        foreach (var culture in directory.GetCultures()) {
             if (string.Equals(culture.Name, placeholderReferenceCulture.Name, StringComparison.OrdinalIgnoreCase)) {
                 return culture;
             }
         }
 
         throw new ArgumentException(
-            $"The culture '{placeholderReferenceCulture.Name}' is not part of this locale table collection.",
+            $"The culture '{placeholderReferenceCulture.Name}' is not part of this localization directory.",
             nameof(placeholderReferenceCulture)
         );
     }
@@ -81,12 +81,12 @@ public static class JsonLocalizationValidation {
     }
 
     private static void CollectMissingTranslations(
-        JsonLocaleTableCollection collection,
+        JsonLocalizationDirectory directory,
         HashSet<string> entryKeys,
         List<JsonLocalizationIssue> issues) {
-        foreach (var culture in collection.GetCultures()) {
+        foreach (var culture in directory.GetCultures()) {
             foreach (var entryKey in entryKeys) {
-                if (collection.GetTranslation(culture, entryKey).Length == 0) {
+                if (directory.GetTranslation(culture, entryKey).Length == 0) {
                     issues.Add(new JsonLocalizationIssue(
                         JsonLocalizationIssueKind.MissingTranslation,
                         entryKey,
@@ -99,12 +99,12 @@ public static class JsonLocalizationValidation {
     }
 
     private static void CollectInvalidFormatStrings(
-        JsonLocaleTableCollection collection,
+        JsonLocalizationDirectory directory,
         HashSet<string> entryKeys,
         List<JsonLocalizationIssue> issues) {
-        foreach (var culture in collection.GetCultures()) {
+        foreach (var culture in directory.GetCultures()) {
             foreach (var entryKey in entryKeys) {
-                var translation = collection.GetTranslation(culture, entryKey);
+                var translation = directory.GetTranslation(culture, entryKey);
                 if (translation.Length == 0 || FormatPlaceholderIndices.TryCollect(translation, out _)) {
                     continue;
                 }
@@ -120,12 +120,12 @@ public static class JsonLocalizationValidation {
     }
 
     private static void CollectPlaceholderMismatches(
-        JsonLocaleTableCollection collection,
+        JsonLocalizationDirectory directory,
         HashSet<string> entryKeys,
         CultureInfo placeholderReferenceCulture,
         List<JsonLocalizationIssue> issues) {
         foreach (var entryKey in entryKeys) {
-            var referenceTranslation = collection.GetTranslation(placeholderReferenceCulture, entryKey);
+            var referenceTranslation = directory.GetTranslation(placeholderReferenceCulture, entryKey);
             if (referenceTranslation.Length == 0) {
                 continue;
             }
@@ -134,12 +134,12 @@ public static class JsonLocalizationValidation {
                 continue;
             }
 
-            foreach (var culture in collection.GetCultures()) {
+            foreach (var culture in directory.GetCultures()) {
                 if (string.Equals(culture.Name, placeholderReferenceCulture.Name, StringComparison.OrdinalIgnoreCase)) {
                     continue;
                 }
 
-                var translation = collection.GetTranslation(culture, entryKey);
+                var translation = directory.GetTranslation(culture, entryKey);
                 if (translation.Length == 0) {
                     continue;
                 }
@@ -159,11 +159,11 @@ public static class JsonLocalizationValidation {
     }
 
     private static void CollectUnexpectedTranslationKeys(
-        JsonLocaleTableCollection collection,
+        JsonLocalizationDirectory directory,
         HashSet<string> entryKeys,
         List<JsonLocalizationIssue> issues) {
-        foreach (var culture in collection.GetCultures()) {
-            foreach (var translationKey in collection.GetTranslationKeys(culture)) {
+        foreach (var culture in directory.GetCultures()) {
+            foreach (var translationKey in directory.GetTranslationKeys(culture)) {
                 if (entryKeys.Contains(translationKey)) {
                     continue;
                 }

@@ -24,14 +24,14 @@ internal sealed class ValidationFeature : IDisposable {
     }
 
     private void AnalyzeAll() {
-        var tables = _workspace.Tables;
+        var directory = _workspace.Directory;
         var referenceCulture = _workspace.PlaceholderReferenceCulture;
-        if (tables is null) {
+        if (directory is null) {
             _resultStore.Clear();
         } else if (referenceCulture is null) {
             _resultStore.ReplaceAll(Array.Empty<JsonLocalizationIssue>());
         } else {
-            _resultStore.ReplaceAll(JsonLocalizationValidation.Validate(tables, referenceCulture));
+            _resultStore.ReplaceAll(JsonLocalizationValidation.Validate(directory, referenceCulture));
         }
 
         _resultsChanged.Handlers?.Invoke();
@@ -47,14 +47,14 @@ internal sealed class ValidationFeature : IDisposable {
     }
 
     private void AnalyzeEntry(string entryKey) {
-        var tables = _workspace.Tables;
+        var directory = _workspace.Directory;
         var referenceCulture = _workspace.PlaceholderReferenceCulture;
-        if (tables is null || referenceCulture is null) {
+        if (directory is null || referenceCulture is null) {
             AnalyzeAll();
             return;
         }
 
-        _resultStore.ReplaceEntry(entryKey, JsonLocalizationValidation.ValidateEntry(tables, referenceCulture, entryKey));
+        _resultStore.ReplaceEntry(entryKey, JsonLocalizationValidation.ValidateEntry(directory, referenceCulture, entryKey));
         _resultsChanged.Handlers?.Invoke();
     }
 }
