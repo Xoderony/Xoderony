@@ -26,27 +26,10 @@ coverage*.info
 *.userprefs
 *.DotSettings.user
 
-# Machine-specific Unity reference paths
-src/Xoderony.Logging.Unity/Xoderony.Logging.Unity.local.props
-src/Xoderony.Numerics.Unity.Editor/Xoderony.Numerics.Unity.Editor.local.props
-src/Xoderony.Serialization.Unity/Xoderony.Serialization.Unity.local.props
-src/Xoderony.ObjectPool.Unity/Xoderony.ObjectPool.Unity.local.props
-
 # VS Code: keep shared launch and task definitions
 .vscode/*
 !.vscode/launch.json
 !.vscode/tasks.json
-
-# Unity-generated directories and files
-[Ll]ibrary/
-[Tt]emp/
-[Ll]ogs/
-[Uu]ser[Ss]ettings/
-[Mm]emoryCaptures/
-[Rr]ecordings/
-*.pidb.meta
-*.pdb.meta
-*.mdb.meta
 
 # OS-generated files
 .DS_Store

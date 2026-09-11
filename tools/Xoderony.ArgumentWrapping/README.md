@@ -1,6 +1,6 @@
 # Xoderony.ArgumentWrapping
 
-这是供 Visual Studio 使用的 C# Roslyn 分析器与 CodeFix。它检查方法调用与构造函数调用（`new Type(...)`、`new(...)`）的实参列表；方法声明不受影响。项目不属于 Unity 运行时程序集或 UPM 包。
+这是供 Visual Studio 使用的 C# Roslyn 分析器与 CodeFix。它检查方法调用与构造函数调用（`new Type(...)`、`new(...)`）的实参列表；方法声明不受影响。项目属于开发工具，不是游戏运行时依赖。
 
 ## 行为
 
@@ -50,8 +50,8 @@ dotnet_diagnostic.XoderonyArgumentLayout.severity = warning
 
 ## 构建与安装
 
-构建 `tools/Xoderony.ArgumentWrapping.Vsix/Xoderony.ArgumentWrapping.Vsix.csproj` 会产出 VSIX。双击生成的 `.vsix` 安装它，然后重启 Visual Studio。VSIX 将分析器作为 IDE 扩展资产加载，因此对 Visual Studio 打开的 Unity C# 源码工程生效，无需在 Unity 生成的 `.csproj` 中添加 NuGet 包或修改 UPM 运行时程序集。
+构建 `tools/Xoderony.ArgumentWrapping.Vsix/Xoderony.ArgumentWrapping.Vsix.csproj` 会产出 VSIX。双击生成的 `.vsix` 安装它，然后重启 Visual Studio。VSIX 将分析器作为 IDE 扩展资产加载，因此对 Visual Studio 打开的 C# 项目生效。
 
-安装后打开 Unity 项目生成的解决方案即可使用。需要通过 **Code Cleanup** 配置中的 **Fix all warnings and errors set in EditorConfig** 修复时，在项目根目录的 `.editorconfig` 中显式将 `XoderonyArgumentLayout` 设置为 `warning` 或 `error`；`suggestion` 与 `silent` 不保证由该入口执行。此扩展不替换 Visual Studio 的格式化文档命令。
+安装后打开 C# 解决方案即可使用。需要通过 **Code Cleanup** 配置中的 **Fix all warnings and errors set in EditorConfig** 修复时，在项目根目录的 `.editorconfig` 中显式将 `XoderonyArgumentLayout` 设置为 `warning` 或 `error`；`suggestion` 与 `silent` 不保证由该入口执行。此扩展不替换 Visual Studio 的格式化文档命令。
 
 VSIX 将 `Xoderony.ArgumentWrapping.dll` 注册为 `Microsoft.VisualStudio.Analyzer`，将 `Xoderony.ArgumentWrapping.CodeFixes.dll` 注册为 `Microsoft.VisualStudio.MefComponent`。分析器只依赖编译器 API，CodeFix 单独依赖 Workspaces，两个程序集一同打包。清单使用 Visual Studio 17.0 起的开放上界安装目标，适用于 VS2026 的兼容模型；尚未在本机 Visual Studio 中执行安装或 Code Cleanup 集成验证。

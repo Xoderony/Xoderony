@@ -15,7 +15,7 @@
     <ProjectReference Include="..\..\src\Xoderony.Channels\Xoderony.Channels.csproj" />
     <ProjectReference Include="..\..\src\Xoderony.Localization\Xoderony.Localization.csproj" />
     <ProjectReference Include="..\..\src\Xoderony.Localization.Json\Xoderony.Localization.Json.csproj" />
-    <ProjectReference Include="..\..\src\Xoderony.Localization.Tooling\Xoderony.Localization.Tooling.csproj" />
+    <ProjectReference Include="..\Xoderony.Localization.CodeGeneration\Xoderony.Localization.CodeGeneration.csproj" OutputItemType="Analyzer" />
     <ProjectReference Include="..\Xoderony.Localization.SourceGeneration\Xoderony.Localization.SourceGeneration.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
   </ItemGroup>
   <ItemGroup>

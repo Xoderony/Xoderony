@@ -3,9 +3,8 @@ using System.Buffers.Binary;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using BenchmarkDotNet.Attributes;
-using UnityEngine;
+using System.Numerics;
 using Xoderony.Serialization;
-using Xoderony.Serialization.Unity;
 using Random = System.Random;
 
 namespace Xoderony.Benchmarks.Serialization;
@@ -29,9 +28,9 @@ public class Vector3WriteBenchmarks {
     [GlobalSetup]
     public void Setup() {
         if (!BitConverter.IsLittleEndian || Unsafe.SizeOf<Vector3>() != Vector3Codec.ByteCount
-            || Marshal.OffsetOf<Vector3>(nameof(Vector3.x)) != 0
-            || Marshal.OffsetOf<Vector3>(nameof(Vector3.y)) != 4
-            || Marshal.OffsetOf<Vector3>(nameof(Vector3.z)) != 8) {
+            || Marshal.OffsetOf<Vector3>(nameof(Vector3.X)) != 0
+            || Marshal.OffsetOf<Vector3>(nameof(Vector3.Y)) != 4
+            || Marshal.OffsetOf<Vector3>(nameof(Vector3.Z)) != 8) {
             throw new PlatformNotSupportedException("This comparison requires little-endian Vector3 values with a 12-byte xyz layout.");
         }
 
@@ -48,9 +47,9 @@ public class Vector3WriteBenchmarks {
         for (var i = 0; i < _values.Length; i++) {
             var destination = _expected.AsSpan(Offset + (i * Vector3Codec.ByteCount), Vector3Codec.ByteCount);
             var value = _values[i];
-            BinaryPrimitives.WriteInt32LittleEndian(destination, BitConverter.SingleToInt32Bits(value.x));
-            BinaryPrimitives.WriteInt32LittleEndian(destination[4..], BitConverter.SingleToInt32Bits(value.y));
-            BinaryPrimitives.WriteInt32LittleEndian(destination[8..], BitConverter.SingleToInt32Bits(value.z));
+            BinaryPrimitives.WriteInt32LittleEndian(destination, BitConverter.SingleToInt32Bits(value.X));
+            BinaryPrimitives.WriteInt32LittleEndian(destination[4..], BitConverter.SingleToInt32Bits(value.Y));
+            BinaryPrimitives.WriteInt32LittleEndian(destination[8..], BitConverter.SingleToInt32Bits(value.Z));
         }
 
         Verify(Fields);
@@ -107,9 +106,9 @@ public class Vector3WriteBenchmarks {
     }
 
     private static void WriteFields(ref SpanWriter writer, Vector3 value) {
-        writer.WriteSingle(value.x);
-        writer.WriteSingle(value.y);
-        writer.WriteSingle(value.z);
+        writer.WriteSingle(value.X);
+        writer.WriteSingle(value.Y);
+        writer.WriteSingle(value.Z);
     }
 
     private static float NextSingle(Random random) {

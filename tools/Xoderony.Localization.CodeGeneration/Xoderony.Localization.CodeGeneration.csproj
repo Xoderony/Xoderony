@@ -1,0 +1,11 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>netstandard2.0</TargetFramework>
+    <RootNamespace>Xoderony.Localization.CodeGeneration</RootNamespace>
+    <AssemblyName>Xoderony.Localization.CodeGeneration</AssemblyName>
+    <PackageId>Xoderony.Localization.CodeGeneration</PackageId>
+    <IsPackable>true</IsPackable>
+    <AllowUnsafeBlocks>false</AllowUnsafeBlocks>
+    <Description>Roslyn-independent C# key source generation for Xoderony.Localization.</Description>
+  </PropertyGroup>
+</Project>

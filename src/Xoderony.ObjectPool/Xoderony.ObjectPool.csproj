@@ -1,14 +1,9 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-    <TargetFramework>netstandard2.1</TargetFramework>
     <RootNamespace>Xoderony.ObjectPool</RootNamespace>
     <AssemblyName>Xoderony.ObjectPool</AssemblyName>
     <PackageId>Xoderony.ObjectPool</PackageId>
     <AllowUnsafeBlocks>false</AllowUnsafeBlocks>
-    <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
-    <Description>Object pool contracts, return scopes, and collection pools. No UnityEngine dependency.</Description>
+    <Description>Object pool contracts, return scopes, and collection pools.</Description>
   </PropertyGroup>
-  <ItemGroup>
-    <Compile Include="..\..\unity\io.github.xoderony.objectpool\Runtime\**\*.cs" Link="%(RecursiveDir)%(Filename)%(Extension)" />
-  </ItemGroup>
 </Project>

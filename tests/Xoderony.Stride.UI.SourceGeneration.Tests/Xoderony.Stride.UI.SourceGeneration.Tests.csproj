@@ -1,0 +1,13 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.14.1" />
+    <PackageReference Include="Microsoft.CodeAnalysis.CSharp" Version="4.14.0" />
+    <PackageReference Include="Stride.UI" Version="4.4.0-beta6" />
+    <PackageReference Include="xunit" Version="2.9.3" />
+    <PackageReference Include="xunit.runner.visualstudio" Version="3.1.4" PrivateAssets="all" />
+    <ProjectReference Include="..\..\tools\Xoderony.Stride.UI.SourceGeneration\Xoderony.Stride.UI.SourceGeneration.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="..\..\tools\Xoderony.Stride.UI.SourceGeneration\buildTransitive\*" Link="BuildTransitive\%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+</Project>

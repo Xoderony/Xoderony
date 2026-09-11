@@ -1,11 +1,11 @@
+using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.Diagnostics;
+using Microsoft.CodeAnalysis.Text;
 using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Text.Json;
-using Microsoft.CodeAnalysis;
-using Microsoft.CodeAnalysis.Diagnostics;
-using Microsoft.CodeAnalysis.Text;
-using Xoderony.Localization.Tooling;
+using Xoderony.Localization.CodeGeneration;
 
 namespace Xoderony.Localization.SourceGeneration;
 
@@ -24,7 +24,8 @@ public sealed class JsonStringTableKeyGenerator : IIncrementalGenerator {
         "The Xoderony localization generator configuration is invalid: {0}",
         "Xoderony.Localization.SourceGeneration",
         DiagnosticSeverity.Error,
-        true);
+        true
+    );
 
     private static readonly DiagnosticDescriptor InvalidJson = new(
         "XLG002",
@@ -32,7 +33,8 @@ public sealed class JsonStringTableKeyGenerator : IIncrementalGenerator {
         "The keys JSON is invalid",
         "Xoderony.Localization.SourceGeneration",
         DiagnosticSeverity.Error,
-        true);
+        true
+    );
 
     private static readonly DiagnosticDescriptor InvalidKeysShape = new(
         "XLG003",
@@ -40,7 +42,8 @@ public sealed class JsonStringTableKeyGenerator : IIncrementalGenerator {
         "The keys JSON shape is invalid: {0}",
         "Xoderony.Localization.SourceGeneration",
         DiagnosticSeverity.Error,
-        true);
+        true
+    );
 
     private static readonly DiagnosticDescriptor InvalidKeys = new(
         "XLG004",
@@ -48,7 +51,8 @@ public sealed class JsonStringTableKeyGenerator : IIncrementalGenerator {
         "The keys JSON cannot generate C# members: {0}",
         "Xoderony.Localization.SourceGeneration",
         DiagnosticSeverity.Error,
-        true);
+        true
+    );
 
     public void Initialize(IncrementalGeneratorInitializationContext context) {
         var keyFiles = context.AdditionalTextsProvider
@@ -71,7 +75,8 @@ public sealed class JsonStringTableKeyGenerator : IIncrementalGenerator {
             file.Path,
             GetMetadata(metadataNameToValue, NamespaceMetadataName, DefaultNamespace),
             GetMetadata(metadataNameToValue, TypeNameMetadataName, DefaultTypeName),
-            file.GetText(cancellationToken));
+            file.GetText(cancellationToken)
+        );
     }
 
     private static string GetMetadata(AnalyzerConfigOptions metadataNameToValue, string name, string defaultValue) {

@@ -14,9 +14,8 @@ using System.Windows.Controls.Primitives;
 using System.Windows.Data;
 using System.Windows.Input;
 using System.Windows.Media;
-using Xoderony;
 using Xoderony.Localization.Json;
-using Xoderony.Localization.Tooling;
+using Xoderony.Localization.CodeGeneration;
 
 namespace Xoderony.Localization.Editor;
 
@@ -139,7 +138,8 @@ public partial class MainWindow : Window {
         var namespaceName = Prompt(
             _localizer[EditorStringKeys.Dialog.GenerateKeysNamespaceTitle],
             _localizer[EditorStringKeys.Dialog.GenerateKeysNamespaceMessage],
-            "Xoderony.Localization");
+            "Xoderony.Localization"
+        );
         if (namespaceName is null) {
             return;
         }
@@ -147,7 +147,8 @@ public partial class MainWindow : Window {
         var typeName = Prompt(
             _localizer[EditorStringKeys.Dialog.GenerateKeysTypeTitle],
             _localizer[EditorStringKeys.Dialog.GenerateKeysTypeMessage],
-            "StringTableKeys");
+            "StringTableKeys"
+        );
         if (typeName is null) {
             return;
         }

@@ -16,7 +16,7 @@
 - [`Styles/VisualStudio.xaml`](./Styles/VisualStudio.xaml)：字体和浅暗主题共用的控件样式。
 - [`Styles/VisualStudioLight.xaml`](./Styles/VisualStudioLight.xaml)：浅色主题颜色和画刷。
 - [`Styles/VisualStudioDark.xaml`](./Styles/VisualStudioDark.xaml)：深色主题颜色和画刷。
-- [`../../unity/io.github.xoderony.localization/Runtime/Json/JsonLocaleTableCollection.cs`](../../unity/io.github.xoderony.localization/Runtime/Json/JsonLocaleTableCollection.cs)：JSON 语言表数据层。
+- [`../../src/Xoderony.Localization.Json/JsonLocaleTableCollection.cs`](../../src/Xoderony.Localization.Json/JsonLocaleTableCollection.cs)：JSON 语言表数据层。
 
 ## 1. 先建立整体认识
 

@@ -25,4 +25,4 @@
 
 生成后可直接使用 `StringTableKeys.MainMenu.Start`，其值为 `"main_menu.start"`。键结构、命名空间或类型名的改变都是 API 变更；生成器不会重写调用方源码。
 
-此阶段仅支持标准 .NET/MSBuild 的 analyzer 分发，不支持 Unity 的 RoslynAnalyzer DLL 或 `.additionalfile` 工作流。
+通过标准 .NET/MSBuild analyzer 包分发。

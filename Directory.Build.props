@@ -11,8 +11,8 @@
     <PackageProjectUrl>https://github.com/Xoderony/Xoderony</PackageProjectUrl>
     <RepositoryUrl>https://github.com/Xoderony/Xoderony.git</RepositoryUrl>
     <RepositoryType>git</RepositoryType>
-    <PackageTags>unity;upm;game;dotnet</PackageTags>
-    <Version>0.1.0</Version>
+    <PackageTags>game;dotnet</PackageTags>
+    <VersionPrefix>0.1.0</VersionPrefix>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
     <NoWarn>$(NoWarn);CS1591</NoWarn>
   </PropertyGroup>

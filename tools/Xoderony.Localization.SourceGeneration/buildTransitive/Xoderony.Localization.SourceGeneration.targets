@@ -5,9 +5,9 @@
     <XoderonyLocalizationDefaultTypeName Condition="'$(XoderonyLocalizationDefaultTypeName)' == ''">StringTableKeys</XoderonyLocalizationDefaultTypeName>
   </PropertyGroup>
   <ItemGroup>
-    <AdditionalFiles Update="@(AdditionalFiles)" Condition="'%(AdditionalFiles.XoderonyLocalizationGenerate)' == 'true'">
-      <XoderonyLocalizationNamespace Condition="'%(AdditionalFiles.XoderonyLocalizationNamespace)' == ''">$(XoderonyLocalizationDefaultNamespace)</XoderonyLocalizationNamespace>
-      <XoderonyLocalizationTypeName Condition="'%(AdditionalFiles.XoderonyLocalizationTypeName)' == ''">$(XoderonyLocalizationDefaultTypeName)</XoderonyLocalizationTypeName>
+    <AdditionalFiles Update="@(AdditionalFiles)">
+      <XoderonyLocalizationNamespace Condition="'%(AdditionalFiles.XoderonyLocalizationGenerate)' == 'true' And '%(AdditionalFiles.XoderonyLocalizationNamespace)' == ''">$(XoderonyLocalizationDefaultNamespace)</XoderonyLocalizationNamespace>
+      <XoderonyLocalizationTypeName Condition="'%(AdditionalFiles.XoderonyLocalizationGenerate)' == 'true' And '%(AdditionalFiles.XoderonyLocalizationTypeName)' == ''">$(XoderonyLocalizationDefaultTypeName)</XoderonyLocalizationTypeName>
     </AdditionalFiles>
   </ItemGroup>
 </Project>

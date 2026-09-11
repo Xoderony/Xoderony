@@ -1,0 +1,17 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net10.0-windows</TargetFramework>
+    <UseWPF>true</UseWPF>
+    <IsPackable>true</IsPackable>
+    <Version>0.1.0-beta.1</Version>
+    <PackageId>Xoderony.Numerics.Stride.Editor</PackageId>
+    <StrideContainsAssetTypes>true</StrideContainsAssetTypes>
+    <Description>Q16 decimal property editing for Stride Game Studio 4.4.</Description>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="Stride.Core.Assets.Editor" Version="4.4.0-beta6" />
+    <ProjectReference Include="..\..\src\Xoderony.Numerics\Xoderony.Numerics.csproj" />
+    <None Include="README.md" Pack="true" PackagePath="" />
+  </ItemGroup>
+</Project>

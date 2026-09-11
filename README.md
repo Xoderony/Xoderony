@@ -1,56 +1,60 @@
 # Xoderony
 
-面向 Unity 7 和 .NET 10 的模块化库集合，各模块按职责独立发布和维护。
+面向 .NET 的模块化基础库，各模块独立打包为 NuGet。源码位于 `src/`，测试位于 `tests/`，开发工具位于 `tools/`。
 
 ## 包
 
-- Xoderony.Channels / io.github.xoderony.channels：委托订阅与分发通道、共享值读写通道。
-- Xoderony.Serialization / io.github.xoderony.serialization：二进制 Span Reader/Writer 与 Codec。
-- Xoderony.Serialization.Unity / io.github.xoderony.serialization.unity：可选的 Unity 值类型二进制 Codec，单向依赖 Serialization；详见[使用与数据格式](unity/io.github.xoderony.serialization.unity/README.md)。
-- Xoderony.ObjectPool / io.github.xoderony.objectpool：对象池契约、归还作用域与集合池。
-- Xoderony.Collections / io.github.xoderony.collections：固定容量 Span 集合与 BCL 集合扩展。
-- Xoderony.Numerics / io.github.xoderony.numerics：Q16 定点数与泛型数值扩展。
-- Xoderony.Numerics.Unity.Editor / io.github.xoderony.numerics.unity：可选的 Unity Editor 适配，提供 Q16 小数编辑框；单向依赖 Numerics。
-- `Xoderony.Text` / `io.github.xoderony.text`：基于 Span 的 UTF-16 与 UTF-8 文本构造、格式化工具和字符串扩展，不依赖 `UnityEngine`。
-- `Xoderony.Logging` / `io.github.xoderony.logging`：无 Unity 依赖的通用日志核心，以及自动携带调用位置与 Unity 对象上下文的 Unity 适配。
-- `Xoderony.Localization` / `io.github.xoderony.localization`：无 Unity 依赖的本地化核心、强类型字符串键生成工具，以及可选的 Hjson Unity 编辑器数据层。
-- `Xoderony.Modding` / `io.github.xoderony.modding`：按约定扫描并加载游戏 Mod，不依赖 `UnityEngine`。
-- `Xoderony.Localization.SourceGeneration`：面向标准 .NET/MSBuild 项目的可选 NuGet analyzer，从显式标记的 `keys.json` 生成强类型字符串键；Unity 的 RoslynAnalyzer 分发不在当前阶段支持范围内。
+- `Xoderony.Channels`
+- `Xoderony.Collections`
+- `Xoderony.Localization`
+- `Xoderony.Localization.Json`
+- `Xoderony.Localization.CodeGeneration`
+- `Xoderony.Logging`
+- `Xoderony.Modding`
+- `Xoderony.Numerics`
+- `Xoderony.ObjectPool`
+- `Xoderony.Serialization`
+- `Xoderony.Text`
+- `Xoderony.Localization.CodeGeneration`：本地化代码生成的共享构建期工具。
+- `Xoderony.Localization.SourceGeneration`：可选的本地化键源生成器，以 NuGet analyzer 分发。
+- `Xoderony.Stride.UI.SourceGeneration`：从 Stride UI 资产生成强类型实例绑定，详见[使用说明](tools/Xoderony.Stride.UI.SourceGeneration/README.md)。
 
-Channels、Serialization、ObjectPool、Collections、Numerics 和 Text 均不依赖 UnityEngine，也不相互依赖；按需安装并直接引用对应程序集。
+## 本地化组件边界
 
-## 安装
+- `Xoderony.Localization` 是运行时本地化契约与字符串查询实现，不依赖具体存储格式。
+- `Xoderony.Localization.Json` 负责 JSON 语言表的读写、结构编辑与校验，不承担字符串查询。
+- `Xoderony.Localization.CodeGeneration` 是不依赖 Roslyn 的 C# 键源码构造器，供编辑器和源生成器复用。
+- `Xoderony.Localization.SourceGeneration` 是 Roslyn 适配层，将 `AdditionalFiles` 转换为键后调用 CodeGeneration；NuGet 包会携带 CodeGeneration 作为 analyzer 依赖。
+- `Xoderony.Localization.Editor` 是 WPF 应用，组合 Localization、Json 和 CodeGeneration，并仅以 analyzer 方式使用 SourceGeneration 生成自身的界面字符串键。
 
-在 Unity Package Manager 中选择 **Add package from git URL**，输入所需包的地址：
+依赖方向固定为：
 
 ```text
-https://github.com/Xoderony/Xoderony.git?path=unity/io.github.xoderony.channels
-https://github.com/Xoderony/Xoderony.git?path=unity/io.github.xoderony.serialization
-https://github.com/Xoderony/Xoderony.git?path=unity/io.github.xoderony.serialization.unity
-https://github.com/Xoderony/Xoderony.git?path=unity/io.github.xoderony.objectpool
-https://github.com/Xoderony/Xoderony.git?path=unity/io.github.xoderony.collections
-https://github.com/Xoderony/Xoderony.git?path=unity/io.github.xoderony.numerics
-https://github.com/Xoderony/Xoderony.git?path=unity/io.github.xoderony.numerics.unity
-https://github.com/Xoderony/Xoderony.git?path=unity/io.github.xoderony.text
-https://github.com/Xoderony/Xoderony.git?path=unity/io.github.xoderony.logging
-https://github.com/Xoderony/Xoderony.git?path=unity/io.github.xoderony.localization
-https://github.com/Xoderony/Xoderony.git?path=unity/io.github.xoderony.modding
+Xoderony.Localization.Editor
+├─ Xoderony.Localization
+├─ Xoderony.Localization.Json
+├─ Xoderony.Localization.CodeGeneration
+└─ analyzer: Xoderony.Localization.SourceGeneration
+              └─ Xoderony.Localization.CodeGeneration
 ```
 
-## 从 Core 迁移
+`Xoderony.Localization.Json` 与 `Xoderony.Localization` 保持平行，由应用层组合；SourceGeneration 不引用 .NET 10 运行时库。
 
-Xoderony.Core / io.github.xoderony.core 已移除。原有集合、序列化、对象池、数值和通道能力分别归属上列独立包，StringExtensions 归属 Text；这些迁移类型的命名空间保持不变，调用方需更新程序集引用并重新编译。
+## 使用与打包
 
-SpanExtensions 已删除，调用方改用 System.Runtime.InteropServices.MemoryMarshal 的对应 API，例如 MemoryMarshal.AsBytes、Cast、Read、Write 和 AsRef。Unity 调用方需移除旧 Core 的 asmdef 引用，按需引用各模块；使用程序集限定类型名的持久化数据需同步迁移。
+仓库内部通过 `ProjectReference` 组织项目；外部调用方只通过 `PackageReference` 使用版本化包。运行时库使用 .NET 10，Roslyn 扩展及其共享构建期工具使用宿主要求的 `netstandard2.0`。
 
-## 兼容性
+生成供本地调用方使用的唯一预发布版本：
 
-- Unity 7（`7000.0`）或更高版本
-- .NET 10
+```powershell
+.\pack-local.ps1
+```
 
-## 性能基准
+包会写入 `artifacts/packages`，版本格式为 `0.1.0-dev.<UTC 时间戳>`。将该目录配置为本地 NuGet 包源并使用 `0.1.0-dev.*` 即可获取最新构建，无需公开发布。`Xoderony.Localization.Editor` 是独立 WPF 应用；ArgumentWrapping 的分析器、CodeFix 和 VSIX 是开发工具，不作为游戏运行时库引用。
 
-[Xoderony.Benchmarks](benchmarks/Xoderony.Benchmarks/README.md) 提供可扩展的 .NET 10 基准入口，目前包含 Vector3 的逐字段、整体内存、固定偏移与数组批量读写比较。
+## 开发位置
+
+后续开发在 `E:\Projects\Xoderony` 进行。Expriverse 通过本地 NuGet 包使用 Xoderony，不直接引用其项目或源码。
 
 ## 许可证
 

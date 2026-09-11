@@ -3,9 +3,8 @@ using System.Buffers.Binary;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using BenchmarkDotNet.Attributes;
-using UnityEngine;
+using System.Numerics;
 using Xoderony.Serialization;
-using Xoderony.Serialization.Unity;
 using Random = System.Random;
 
 namespace Xoderony.Benchmarks.Serialization;
@@ -29,9 +28,9 @@ public class Vector3ReadBenchmarks {
     [GlobalSetup]
     public void Setup() {
         if (!BitConverter.IsLittleEndian || Unsafe.SizeOf<Vector3>() != Vector3Codec.ByteCount
-            || Marshal.OffsetOf<Vector3>(nameof(Vector3.x)) != 0
-            || Marshal.OffsetOf<Vector3>(nameof(Vector3.y)) != 4
-            || Marshal.OffsetOf<Vector3>(nameof(Vector3.z)) != 8) {
+            || Marshal.OffsetOf<Vector3>(nameof(Vector3.X)) != 0
+            || Marshal.OffsetOf<Vector3>(nameof(Vector3.Y)) != 4
+            || Marshal.OffsetOf<Vector3>(nameof(Vector3.Z)) != 8) {
             throw new PlatformNotSupportedException("This comparison requires little-endian Vector3 values with a 12-byte xyz layout.");
         }
 
