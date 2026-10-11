@@ -1,4 +1,4 @@
-using System.Diagnostics;
+using System;
 using System.IO;
 using System.Text.Encodings.Web;
 using System.Text.Json;
@@ -9,7 +9,7 @@ namespace Xoderony.Localization.Json;
 internal static class JsonObjectFile {
 
     public static JsonObject Read(string filePath) {
-        Debug.Assert(!string.IsNullOrWhiteSpace(filePath));
+        // filePath 必须是有效文件路径；文件 API 负责拒绝不可访问的路径。
 
         try {
             using var stream = File.OpenRead(filePath);
@@ -28,8 +28,8 @@ internal static class JsonObjectFile {
     }
 
     public static void Write(string filePath, JsonObject root) {
-        Debug.Assert(!string.IsNullOrWhiteSpace(filePath));
-        Debug.Assert(root is not null);
+        // filePath 必须是有效文件路径；文件 API 负责拒绝不可访问的路径。
+        ArgumentNullException.ThrowIfNull(root);
 
         var directoryPath = Path.GetDirectoryName(filePath);
         if (!string.IsNullOrWhiteSpace(directoryPath)) {

@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using System.Text.Json;
@@ -22,7 +21,7 @@ public abstract class ModManager {
     private readonly Dictionary<string, string> _idToRootDirectory = new(StringComparer.Ordinal);
 
     protected ModManager(string modsDirectory) {
-        Debug.Assert(!string.IsNullOrWhiteSpace(modsDirectory));
+        ArgumentException.ThrowIfNullOrWhiteSpace(modsDirectory);
         _modsDirectory = Path.GetFullPath(modsDirectory);
     }
 
@@ -36,6 +35,11 @@ public abstract class ModManager {
 
     public bool TryGet(string modId, [NotNullWhen(true)] out Mod? mod) {
         return _idToMod.TryGetValue(modId, out mod);
+    }
+
+    /// <summary>查询最近一次成功扫描得到的 Mod 绝对根目录，不要求 Mod 已加载。</summary>
+    public bool TryGetRootDirectory(string modId, [NotNullWhen(true)] out string? rootDirectory) {
+        return _idToRootDirectory.TryGetValue(modId, out rootDirectory);
     }
 
     /// <summary>

@@ -1,5 +1,4 @@
 using System;
-using System.Diagnostics;
 using System.Globalization;
 using Xoderony;
 using Xoderony.Localization.Json;
@@ -25,6 +24,9 @@ internal sealed class ProjectWorkspace {
 
     public JsonLocaleTableCollection? Tables => _tables;
 
+    // 编辑操作要求已打开项目，在回调或写入状态前拒绝未打开状态。
+    private JsonLocaleTableCollection OpenTables => _tables ?? throw new InvalidOperationException("No project is open.");
+
     public ProjectWorkspace(IDelegateDispatcher<ProjectWorkspaceChangedHandler> changed) {
         _changed = changed;
     }
@@ -38,27 +40,27 @@ internal sealed class ProjectWorkspace {
     }
 
     public void Save() {
-        Debug.Assert(_tables is not null);
-        _tables.Save();
+        var tables = OpenTables;
+        tables.Save();
     }
 
     public void ApplyStructureChange(Action<JsonLocaleTableCollection> change) {
-        Debug.Assert(_tables is not null);
-        change(_tables);
-        _placeholderReferenceCulture ??= ResolveReferenceCulture(_tables, preferredCultureName: null);
+        var tables = OpenTables;
+        change(tables);
+        _placeholderReferenceCulture ??= ResolveReferenceCulture(tables, preferredCultureName: null);
         _changed.Handlers?.Invoke(new ProjectWorkspaceChange(ProjectWorkspaceChangeKind.StructureChanged));
     }
 
     public void SetTranslation(CultureInfo culture, string entryKey, string translation) {
-        Debug.Assert(_tables is not null);
-        _tables.SetTranslation(culture, entryKey, translation);
+        var tables = OpenTables;
+        tables.SetTranslation(culture, entryKey, translation);
         _changed.Handlers?.Invoke(new ProjectWorkspaceChange(ProjectWorkspaceChangeKind.TranslationChanged, entryKey));
     }
 
     public bool SetPlaceholderReferenceCulture(CultureInfo culture) {
-        Debug.Assert(_tables is not null);
+        var tables = OpenTables;
         CultureInfo? matchingCulture = null;
-        foreach (var candidate in _tables.GetCultures()) {
+        foreach (var candidate in tables.GetCultures()) {
             if (string.Equals(candidate.Name, culture.Name, StringComparison.OrdinalIgnoreCase)) {
                 matchingCulture = candidate;
                 break;

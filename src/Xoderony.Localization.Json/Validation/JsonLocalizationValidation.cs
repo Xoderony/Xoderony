@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.Globalization;
 
 namespace Xoderony.Localization.Json;
@@ -8,8 +7,7 @@ namespace Xoderony.Localization.Json;
 public static class JsonLocalizationValidation {
 
     public static IReadOnlyList<JsonLocalizationIssue> Validate(JsonLocaleTableCollection collection, CultureInfo placeholderReferenceCulture) {
-        Debug.Assert(collection is not null);
-        Debug.Assert(placeholderReferenceCulture is not null);
+        // collection 与参考文化必须非空；解析参考文化时自然失败，不产生验证结果。
 
         placeholderReferenceCulture = ResolvePlaceholderReferenceCulture(collection, placeholderReferenceCulture);
 
@@ -30,8 +28,7 @@ public static class JsonLocalizationValidation {
     }
 
     public static IReadOnlyList<JsonLocalizationIssue> ValidateEntry(JsonLocaleTableCollection collection, CultureInfo placeholderReferenceCulture, string entryKey) {
-        Debug.Assert(collection is not null);
-        Debug.Assert(placeholderReferenceCulture is not null);
+        // collection 与参考文化必须非空；解析参考文化时自然失败，不产生验证结果。
         if (entryKey is null) {
             throw new ArgumentNullException(nameof(entryKey));
         }

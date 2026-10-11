@@ -8,6 +8,12 @@ namespace Xoderony.Localization.Tests;
 public class StringLocalizerTests {
 
     [Fact]
+    public void NullArgumentsCannotSucceedThroughMissingKeyFallback() {
+        var localizer = new StringLocalizer(CultureInfo.GetCultureInfo("en-US"), Array.Empty<KeyValuePair<string, string>>());
+        Assert.Throws<ArgumentNullException>(() => localizer["missing", (object?[])null!]);
+    }
+
+    [Fact]
     public void Constructor_CopiesSourceStrings() {
         var keyToLocalizedString = new Dictionary<string, string> {
             ["Greeting"] = "Hello"

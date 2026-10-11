@@ -25,3 +25,5 @@ WriteBytes/ReadBytes 使用 ushort 字节长度前缀；WriteChars/ReadChars 使
 ## 从 Core 迁移
 
 这些类型从 Xoderony.Core 移入本程序集，类型名、命名空间和二进制读写行为保持不变。调用方改为引用 Xoderony.Serialization 并重新编译。
+
+WriteBytes/WriteChars 在写入前拒绝超过 ushort.MaxValue 的长度，避免截断前缀。长度、位置或容量无效时不写入负载、不推进位置。ReadBytes/ReadChars 通过切片拒绝不完整负载，成功后才推进位置，无需额外断言。

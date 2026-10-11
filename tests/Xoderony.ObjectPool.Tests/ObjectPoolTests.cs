@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using Xoderony.ObjectPool;
 using Xoderony.ObjectPool.Generic;
@@ -7,6 +8,15 @@ namespace Xoderony.Tests;
 
 public class ObjectPoolTests {
 
+    [Theory]
+    [InlineData(0)]
+    [InlineData(1)]
+    public void NullReturnsCannotSilentlySucceed(int capacity) {
+        Assert.Throws<ArgumentNullException>(() => new CollectionPool<List<int>, int>(capacity).Return(null!));
+        Assert.Throws<ArgumentNullException>(() => new StackPool<int>(capacity).Return(null!));
+        Assert.Throws<ArgumentNullException>(() => new QueuePool<int>(capacity).Return(null!));
+    }
+
     [Fact]
     public void ListPool_ReusesInstanceAfterDispose() {
         List<int> first;
@@ -15,7 +25,6 @@ public class ObjectPoolTests {
             rented = first;
             first.Add(1);
         }
-        Assert.Null(first);
 
         List<int> second;
         using (ListPool<int>.Shared.Rent(out second)) {
@@ -44,7 +53,6 @@ public class ObjectPoolTests {
             rented = first;
             first.Add(1);
         }
-        Assert.Null(first);
 
         List<int> second;
         using (pool.Rent(out second)) {

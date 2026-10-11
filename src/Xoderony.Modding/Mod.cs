@@ -1,4 +1,4 @@
-using System.Diagnostics;
+using System;
 using System.Threading.Tasks;
 
 namespace Xoderony.Modding;
@@ -6,8 +6,8 @@ namespace Xoderony.Modding;
 public abstract class Mod {
 
     protected Mod(ModManifest manifest, string rootDirectory) {
-        Debug.Assert(manifest is not null);
-        Debug.Assert(!string.IsNullOrWhiteSpace(rootDirectory));
+        ArgumentNullException.ThrowIfNull(manifest);
+        ArgumentException.ThrowIfNullOrWhiteSpace(rootDirectory);
         Manifest = manifest;
         RootDirectory = rootDirectory;
     }

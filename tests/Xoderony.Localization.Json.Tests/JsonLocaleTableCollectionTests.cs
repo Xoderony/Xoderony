@@ -12,6 +12,23 @@ public sealed class JsonLocaleTableCollectionTests {
     private static readonly CultureInfo SimplifiedChinese = CultureInfo.GetCultureInfo("zh-CN");
 
     [Fact]
+    public void InvalidTranslationAndLocalePathDoNotDirtyTheCollection() {
+        var directoryPath = CreateTempDirectory();
+        try {
+            WriteAllText(directoryPath, "keys.json", "{\"title\":null}");
+            WriteAllText(directoryPath, "en-US.json", "{\"title\":\"Title\"}");
+            var collection = JsonLocaleTableCollection.LoadDirectory(directoryPath);
+            Assert.Throws<ArgumentNullException>(() => collection.SetTranslation(English, "title", null!));
+            Assert.Throws<ArgumentException>(() => collection.AddLocale(SimplifiedChinese, " "));
+            Assert.Equal("Title", collection.GetTranslation(English, "title"));
+            Assert.Equal(1, collection.CultureCount);
+            Assert.False(collection.IsDirty);
+        } finally {
+            Directory.Delete(directoryPath, recursive: true);
+        }
+    }
+
+    [Fact]
     public void LoadDirectoryUsesSharedKeysAndFlatLocaleValues() {
         var directoryPath = CreateTempDirectory();
         try {

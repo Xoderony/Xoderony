@@ -1,5 +1,4 @@
 using System;
-using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Text;
 
@@ -64,7 +63,9 @@ public ref struct Utf16SpanWriter(Span<char> destination) {
     [UnscopedRef]
     public ref Utf16SpanWriter Write<T>(T value, scoped ReadOnlySpan<char> format = default, IFormatProvider? provider = null) where T : ISpanFormattable {
         var success = value.TryFormat(RemainingSpan, out var charsWritten, format, provider);
-        Debug.Assert(success);
+        if (!success) {
+            throw new ArgumentException("The value could not be formatted into the remaining destination.", nameof(value));
+        }
         Position += charsWritten;
         return ref this;
     }

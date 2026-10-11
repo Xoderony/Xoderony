@@ -1,6 +1,5 @@
 using System;
 using System.Buffers.Binary;
-using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 
@@ -94,18 +93,22 @@ public ref struct SpanWriter(Span<byte> destination) {
         Position += 8;
     }
 
+    /// <summary>写入 ushort 长度前缀及负载；长度不得超过 ushort.MaxValue，当前位置及剩余容量必须有效。</summary>
     public void WriteBytes(ReadOnlySpan<byte> bytes) {
-        Debug.Assert(bytes.Length <= ushort.MaxValue && CanWrite(sizeof(ushort) + bytes.Length));
-        bytes.CopyTo(Destination[(Position + sizeof(ushort))..]);
-        BinaryPrimitives.WriteUInt16LittleEndian(Destination[Position..], (ushort)bytes.Length);
+        ArgumentOutOfRangeException.ThrowIfGreaterThan(bytes.Length, ushort.MaxValue, nameof(bytes));
+        var destination = Destination.Slice(Position, sizeof(ushort) + bytes.Length);
+        bytes.CopyTo(destination[sizeof(ushort)..]);
+        BinaryPrimitives.WriteUInt16LittleEndian(destination, (ushort)bytes.Length);
         Position += sizeof(ushort) + bytes.Length;
     }
 
+    /// <summary>写入 ushort 字符数前缀及负载；字符数不得超过 ushort.MaxValue，当前位置及剩余容量必须有效。</summary>
     public void WriteChars(ReadOnlySpan<char> chars) {
+        ArgumentOutOfRangeException.ThrowIfGreaterThan(chars.Length, ushort.MaxValue, nameof(chars));
         var payloadByteCount = chars.Length * sizeof(char);
-        Debug.Assert(chars.Length <= ushort.MaxValue && CanWrite(sizeof(ushort) + payloadByteCount));
-        MemoryMarshal.Cast<char, byte>(chars).CopyTo(Destination[(Position + sizeof(ushort))..]);
-        BinaryPrimitives.WriteUInt16LittleEndian(Destination[Position..], (ushort)chars.Length);
+        var destination = Destination.Slice(Position, sizeof(ushort) + payloadByteCount);
+        MemoryMarshal.Cast<char, byte>(chars).CopyTo(destination[sizeof(ushort)..]);
+        BinaryPrimitives.WriteUInt16LittleEndian(destination, (ushort)chars.Length);
         Position += sizeof(ushort) + payloadByteCount;
     }
 }

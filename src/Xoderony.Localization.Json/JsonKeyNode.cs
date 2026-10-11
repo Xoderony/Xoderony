@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using System.Text.Json;
@@ -64,8 +63,8 @@ public abstract class JsonKeyNode {
     internal abstract JsonKeyNode Clone();
 
     internal virtual void SetKeys(string localKey, string parentFullKey) {
-        Debug.Assert(localKey is not null);
-        Debug.Assert(parentFullKey is not null);
+        ArgumentNullException.ThrowIfNull(localKey);
+        ArgumentNullException.ThrowIfNull(parentFullKey);
         _localKey = localKey;
         _fullKey = CombineKey(parentFullKey, localKey);
     }
@@ -81,7 +80,7 @@ public sealed class JsonKeyGroup : JsonKeyNode {
     }
 
     public bool TryGet(string relativeKey, [NotNullWhen(true)] out JsonKeyNode? node) {
-        Debug.Assert(!string.IsNullOrWhiteSpace(relativeKey));
+        // relativeKey 必须非空；空引用访问失败，不存在的路径返回 false。
         var current = this;
         var localKeys = relativeKey.Split('.');
         for (var index = 0; index < localKeys.Length; index++) {
@@ -143,7 +142,7 @@ public sealed class JsonKeyGroup : JsonKeyNode {
     }
 
     public string AllocateLocalKey(string localKey) {
-        Debug.Assert(localKey is not null);
+        // localKey 必须非空；字典查询负责拒绝空键。
         if (!_localKeyToChild.ContainsKey(localKey)) {
             return localKey;
         }
@@ -177,7 +176,7 @@ public sealed class JsonKeyGroup : JsonKeyNode {
     }
 
     internal void AddChild(string localKey, JsonKeyNode child) {
-        Debug.Assert(child is not null);
+        // child 必须非空；SetKeys 失败时不会加入子节点。
         child.SetKeys(localKey, FullKey);
         _localKeyToChild.Add(localKey, child);
     }

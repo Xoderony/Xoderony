@@ -1,5 +1,5 @@
+using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 
 namespace Xoderony.ObjectPool.Generic;
 
@@ -19,7 +19,7 @@ public class StackPool<T>(int capacity = 16) : IPool<Stack<T>> {
     /// <summary>清空并归还 Stack；池满时直接丢弃。</summary>
     /// <param name="value">待归还的 Stack，归还后调用方不得继续使用。</param>
     public void Return(Stack<T> value) {
-        Debug.Assert(value is not null);
+        ArgumentNullException.ThrowIfNull(value);
         if (_pool.Count >= capacity) {
             return;
         }

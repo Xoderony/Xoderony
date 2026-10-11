@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.IO;
@@ -20,21 +19,21 @@ internal sealed class JsonLocaleTable {
 
     /// <summary>直接持有传入的 culture 与 keyToTranslation，不解析 culture，也不复制字典。</summary>
     public JsonLocaleTable(CultureInfo culture, string filePath, SortedDictionary<string, string> keyToTranslation) {
-        Debug.Assert(culture is not null);
+        // culture 必须非空，后续访问在写入状态前失败。
         if (culture.Equals(CultureInfo.InvariantCulture)) {
             throw new ArgumentException("The locale table culture cannot be invariant.", nameof(culture));
         }
 
-        Debug.Assert(!string.IsNullOrWhiteSpace(filePath));
-        Debug.Assert(keyToTranslation is not null);
+        ArgumentException.ThrowIfNullOrWhiteSpace(filePath);
+        ArgumentNullException.ThrowIfNull(keyToTranslation);
         _culture = culture;
         _filePath = filePath;
         _keyToTranslation = keyToTranslation;
     }
 
     public static JsonLocaleTable Load(CultureInfo culture, string filePath) {
-        Debug.Assert(culture is not null);
-        Debug.Assert(!string.IsNullOrWhiteSpace(filePath));
+        // culture 必须非空，后续访问在写入状态前失败。
+        ArgumentException.ThrowIfNullOrWhiteSpace(filePath);
         culture = CultureInfo.GetCultureInfo(culture.Name);
 
         var root = JsonObjectFile.Read(filePath);
@@ -58,13 +57,13 @@ internal sealed class JsonLocaleTable {
     }
 
     public bool TryGetTranslation(string key, [NotNullWhen(true)] out string? translation) {
-        Debug.Assert(key is not null);
+        // key 必须非空；字典操作负责拒绝空键。
         return _keyToTranslation.TryGetValue(key, out translation);
     }
 
     public bool SetTranslation(string key, string translation) {
-        Debug.Assert(key is not null);
-        Debug.Assert(translation is not null);
+        // key 必须非空；字典操作负责拒绝空键。
+        ArgumentNullException.ThrowIfNull(translation);
         if (_keyToTranslation.TryGetValue(key, out var current) && string.Equals(current, translation, StringComparison.Ordinal)) {
             return false;
         }
@@ -74,7 +73,7 @@ internal sealed class JsonLocaleTable {
     }
 
     public bool RemoveTranslation(string key, [NotNullWhen(true)] out string? translation) {
-        Debug.Assert(key is not null);
+        // key 必须非空；字典操作负责拒绝空键。
         return _keyToTranslation.Remove(key, out translation);
     }
 

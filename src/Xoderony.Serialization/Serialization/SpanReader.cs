@@ -1,6 +1,5 @@
 using System;
 using System.Buffers.Binary;
-using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 
@@ -106,7 +105,7 @@ public ref struct SpanReader(ReadOnlySpan<byte> source) {
 
     public ReadOnlySpan<byte> ReadBytes() {
         var payloadByteCount = BinaryPrimitives.ReadUInt16LittleEndian(Source[Position..]);
-        Debug.Assert(CanRead(sizeof(ushort) + payloadByteCount));
+        // Slice 会拒绝不完整负载，成功后才推进 Position。
         var bytes = Source.Slice(Position + sizeof(ushort), payloadByteCount);
         Position += sizeof(ushort) + payloadByteCount;
         return bytes;
@@ -115,7 +114,7 @@ public ref struct SpanReader(ReadOnlySpan<byte> source) {
     public ReadOnlySpan<char> ReadChars() {
         var charCount = BinaryPrimitives.ReadUInt16LittleEndian(Source[Position..]);
         var payloadByteCount = charCount * sizeof(char);
-        Debug.Assert(CanRead(sizeof(ushort) + payloadByteCount));
+        // Slice 会拒绝不完整负载，成功后才推进 Position。
         var chars = MemoryMarshal.Cast<byte, char>(Source.Slice(Position + sizeof(ushort), payloadByteCount));
         Position += sizeof(ushort) + payloadByteCount;
         return chars;

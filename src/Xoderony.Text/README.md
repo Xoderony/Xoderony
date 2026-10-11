@@ -23,3 +23,7 @@
 ## 字符串扩展
 
 Xoderony.Extensions.StringExtensions 提供 IsNullOrEmpty 和 IsNullOrWhiteSpace 扩展属性，从 Xoderony.Core 移入本程序集，命名空间保持不变。使用这些扩展的调用方需改为引用 Xoderony.Text 并重新编译。
+
+## 写入失败
+
+调用方负责有效 Position 和足够容量；切片、复制与编码操作会自然拒绝越界输入。泛型格式化返回 false 时抛出 ArgumentException，Position 不推进，不将失败当作成功写入；自定义格式化器可能已经修改缓冲区内容，不保证回滚。

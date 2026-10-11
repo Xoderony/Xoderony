@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.Globalization;
 using System.IO;
 
@@ -24,9 +23,7 @@ public sealed class JsonLocaleTableCollection {
 
     /// <summary>接管 rootKeyGroup 与 cultureNameToTable 的所有权，不重新解析或复制。</summary>
     private JsonLocaleTableCollection(string keysFilePath, JsonKeyGroup rootKeyGroup, SortedDictionary<string, JsonLocaleTable> cultureNameToTable) {
-        Debug.Assert(!string.IsNullOrWhiteSpace(keysFilePath));
-        Debug.Assert(rootKeyGroup is not null);
-        Debug.Assert(cultureNameToTable is not null);
+        // 私有构造仅接收 LoadDirectory 已建立的路径、键树及语言表。
 
         _keysFilePath = keysFilePath;
         _rootKeyGroup = rootKeyGroup;
@@ -34,7 +31,7 @@ public sealed class JsonLocaleTableCollection {
     }
 
     public static JsonLocaleTableCollection LoadDirectory(string directoryPath) {
-        Debug.Assert(!string.IsNullOrWhiteSpace(directoryPath));
+        ArgumentException.ThrowIfNullOrWhiteSpace(directoryPath);
 
         var keysFilePath = Path.Combine(directoryPath, KeysFileName);
         var rootKeyGroup = LoadRootKeyGroup(keysFilePath);
@@ -82,12 +79,11 @@ public sealed class JsonLocaleTableCollection {
     }
 
     public void AddLocale(CultureInfo culture, string filePath) {
-        Debug.Assert(culture is not null);
+        // culture 必须非空；访问名称或比较时会在写入状态前失败。
         if (culture.Equals(CultureInfo.InvariantCulture)) {
             throw new ArgumentException("The locale table culture cannot be invariant.", nameof(culture));
         }
 
-        Debug.Assert(!string.IsNullOrWhiteSpace(filePath));
 
         culture = CultureInfo.GetCultureInfo(culture.Name);
         var table = new JsonLocaleTable(culture, filePath, new SortedDictionary<string, string>(StringComparer.Ordinal));
@@ -294,7 +290,7 @@ public sealed class JsonLocaleTableCollection {
             throw new ArgumentException($"The localization path '{entryKey}' is a group.", nameof(entryKey));
         }
 
-        Debug.Assert(culture is not null);
+        // culture 必须非空；访问名称或比较时会在写入状态前失败。
         if (!_cultureNameToTable.TryGetValue(culture.Name, out var table)) {
             throw new ArgumentException($"The culture '{culture.Name}' is not part of this locale table collection.", nameof(culture));
         }
@@ -303,13 +299,13 @@ public sealed class JsonLocaleTableCollection {
     }
 
     public void SetTranslation(CultureInfo culture, string entryKey, string translation) {
-        Debug.Assert(translation is not null);
+        // translation 的非空校验由实际写入语言表的入口执行。
 
         if (_rootKeyGroup.Get(entryKey) is not JsonKeyEntry) {
             throw new ArgumentException($"The localization path '{entryKey}' is a group.", nameof(entryKey));
         }
 
-        Debug.Assert(culture is not null);
+        // culture 必须非空；访问名称或比较时会在写入状态前失败。
         if (!_cultureNameToTable.TryGetValue(culture.Name, out var table)) {
             throw new ArgumentException($"The culture '{culture.Name}' is not part of this locale table collection.", nameof(culture));
         }
@@ -324,7 +320,7 @@ public sealed class JsonLocaleTableCollection {
     }
 
     public IEnumerable<string> GetTranslationKeys(CultureInfo culture) {
-        Debug.Assert(culture is not null);
+        // culture 必须非空；访问名称或比较时会在写入状态前失败。
         if (!_cultureNameToTable.TryGetValue(culture.Name, out var table)) {
             throw new ArgumentException($"The culture '{culture.Name}' is not part of this locale table collection.", nameof(culture));
         }

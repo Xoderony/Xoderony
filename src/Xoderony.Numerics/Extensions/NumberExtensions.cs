@@ -1,4 +1,4 @@
-using System.Diagnostics;
+using System;
 using System.Numerics;
 
 namespace Xoderony.Extensions;
@@ -31,7 +31,9 @@ public static class NumberExtensions {
         }
 
         public T MoveTowards(T to, T maxDelta) {
-            Debug.Assert(maxDelta >= T.Zero);
+            if (!(maxDelta >= T.Zero)) {
+                throw new ArgumentOutOfRangeException(nameof(maxDelta), "The maximum delta must be nonnegative and not NaN.");
+            }
             var delta = to - from;
             if (delta > maxDelta) {
                 return from + maxDelta;

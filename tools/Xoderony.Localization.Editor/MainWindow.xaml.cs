@@ -2,7 +2,6 @@ using Microsoft.Win32;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
-using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.IO;
@@ -811,8 +810,7 @@ public partial class MainWindow : Window {
     }
 
     private JsonKeyGroup GetCurrentGroup() {
-        var tables = _workspace.Tables;
-        Debug.Assert(tables is not null);
+        var tables = _workspace.Tables ?? throw new InvalidOperationException("No project is open.");
         return tables.RootKeyGroup.GetGroup(_currentGroupKey);
     }
 
@@ -897,7 +895,6 @@ public partial class MainWindow : Window {
     }
 
     private void SelectPlaceholderReferenceCulture(CultureInfo culture) {
-        Debug.Assert(_workspace.Tables is not null);
         _workspace.SetPlaceholderReferenceCulture(culture);
         var referenceCultureName = _preferences.Get<string?>(ValidationPreferenceKeys.PlaceholderReferenceCulture, null);
         if (!string.Equals(referenceCultureName, culture.Name, StringComparison.OrdinalIgnoreCase)) {
@@ -958,8 +955,7 @@ public partial class MainWindow : Window {
         ValidationCompletionText.Text = BuildCompletionText();
 
         string BuildCompletionText() {
-            var tables = _workspace.Tables;
-            Debug.Assert(tables is not null);
+            var tables = _workspace.Tables ?? throw new InvalidOperationException("No project is open.");
             var entryKeys = new List<string>();
             foreach (var entryKey in tables.GetEntryKeys()) {
                 entryKeys.Add(entryKey);

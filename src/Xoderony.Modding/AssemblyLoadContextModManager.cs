@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.IO;
 using System.Reflection;
 using System.Runtime.Loader;
@@ -17,7 +16,7 @@ public class AssemblyLoadContextModManager : ModManager {
 
     /// <remarks><paramref name="onUnloadError"/> 接收 Mod ID 和上下文卸载异常；回调不得向外传播异常。</remarks>
     public AssemblyLoadContextModManager(string modsDirectory, Action<string, Exception> onUnloadError) : base(modsDirectory) {
-        Debug.Assert(onUnloadError is not null);
+        ArgumentNullException.ThrowIfNull(onUnloadError);
         _onUnloadError = onUnloadError;
     }
 
