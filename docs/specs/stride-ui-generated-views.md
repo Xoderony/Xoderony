@@ -1,5 +1,7 @@
 # Stride UI 强类型 Page View 与 Library 生命周期规格
 
+> 状态：已由 [`stride-ui-library-generated-views.md`](stride-ui-library-generated-views.md) 取代。本文仅保留旧 Page View 组件方案的历史背景；当前生成器不再处理 `.sduipage`。
+
 ## Problem Statement
 
 当前源生成器为 `.sduipage` 和 `.sduilib` 生成纯 C# 绑定类。调用方必须先取得实际 UI 根节点，再手动构造绑定对象；页面代码因而同时依赖 `UIComponent`、根节点类型和生成类型，使用入口分散。页面与 UI 库虽然都需要强类型节点访问，但前者随 Entity 和 `UIComponent` 生命周期存在，后者则是可重复实例化的模板集合，不能用同一种运行时所有权模型强行统一。

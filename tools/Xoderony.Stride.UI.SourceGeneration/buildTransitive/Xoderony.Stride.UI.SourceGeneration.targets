@@ -1,6 +1,6 @@
 <Project>
   <ItemGroup>
-    <_XoderonyStrideUIAsset Include="Assets\**\*.sduipage;Assets\**\*.sduilib" />
+    <_XoderonyStrideUIAsset Include="Assets\**\*.sduilib" />
     <_XoderonyStrideUIAsset Remove="@(AdditionalFiles)" MatchOnMetadata="FullPath" MatchOnMetadataOptions="PathLike" />
     <AdditionalFiles Include="@(_XoderonyStrideUIAsset)" />
     <_XoderonyStrideUIAsset Remove="@(_XoderonyStrideUIAsset)" />

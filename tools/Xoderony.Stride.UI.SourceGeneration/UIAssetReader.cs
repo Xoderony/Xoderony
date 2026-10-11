@@ -7,7 +7,7 @@ using YamlDotNet.RepresentationModel;
 namespace Xoderony.Stride.UI.SourceGeneration;
 
 internal static class UIAssetReader {
-    public static Asset Read(string text, bool library, CancellationToken cancellationToken) {
+    public static Asset Read(string text, CancellationToken cancellationToken) {
         var stream = new YamlStream();
         stream.Load(new StringReader(text));
         if (stream.Documents.Count != 1) {
@@ -15,8 +15,8 @@ internal static class UIAssetReader {
         }
 
         var document = Mapping(stream.Documents[0].RootNode);
-        if (document.Tag.ToString() != (library ? "!UILibraryAsset" : "!UIPageAsset")) {
-            throw new AssetException(2, "The asset tag does not match the file extension.");
+        if (document.Tag.ToString() != "!UILibraryAsset") {
+            throw new AssetException(2, "Expected a UILibrary asset.");
         }
 
         var hierarchy = Mapping(Required(document, "Hierarchy"));
@@ -72,10 +72,6 @@ internal static class UIAssetReader {
                     pending.Push(child);
                 }
             }
-        }
-
-        if (!library && roots.Count != 1) {
-            throw new AssetException(2, "A page must have exactly one root.");
         }
 
         if (visited.Count != elements.Count) {

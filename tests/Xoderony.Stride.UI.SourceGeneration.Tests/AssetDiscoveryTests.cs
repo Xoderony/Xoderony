@@ -16,37 +16,38 @@ public sealed class AssetDiscoveryTests {
         var directory = Path.Combine(Path.GetTempPath(), "XoderonyStrideUI-" + Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(Path.Combine(directory, "Assets", "UI"));
         try {
-            var page = Path.Combine(directory, "Assets", "UI", "Page.sduipage");
             var library = Path.Combine(directory, "Assets", "UI", "Widgets.sduilib");
-            var added = Path.Combine(directory, "Assets", "UI", "Added.sduipage");
-            File.WriteAllText(page, string.Empty);
+            var ignoredPage = Path.Combine(directory, "Assets", "UI", "Page.sduipage");
+            var added = Path.Combine(directory, "Assets", "UI", "Added.sduilib");
             File.WriteAllText(library, string.Empty);
+            File.WriteAllText(ignoredPage, string.Empty);
             var imports = Path.Combine(AppContext.BaseDirectory, "BuildTransitive", "Xoderony.Stride.UI.SourceGeneration");
             var project = Path.Combine(directory, "Consumer.proj");
             new XDocument(new XElement("Project",
                 new XElement("Import", new XAttribute("Project", imports + ".props")),
                 new XElement("PropertyGroup", new XElement("RootNamespace", "Expriverse")),
                 new XElement("ItemGroup",
-                    new XElement("AdditionalFiles", new XAttribute("Include", "Assets/UI/Page.sduipage"),
+                    new XElement("AdditionalFiles", new XAttribute("Include", "Assets/UI/Widgets.sduilib"),
                         new XElement("CustomMetadata", "Preserved"))),
                 new XElement("Import", new XAttribute("Project", imports + ".targets")))).Save(project);
 
             using (var initial = Evaluate(project, designTimeBuild)) {
                 var items = initial.RootElement.GetProperty("Items").GetProperty("AdditionalFiles").EnumerateArray().ToArray();
-                Assert.Equal(2, items.Length);
-                Assert.Equal("Preserved", items.Single(item => item.GetProperty("FullPath").GetString() == page).GetProperty("CustomMetadata").GetString());
+                Assert.Single(items);
+                Assert.Equal("Preserved", items.Single(item => item.GetProperty("FullPath").GetString() == library).GetProperty("CustomMetadata").GetString());
+                Assert.DoesNotContain(items, item => item.GetProperty("FullPath").GetString() == ignoredPage);
             }
 
             File.WriteAllText(added, string.Empty);
             using (var afterAddition = Evaluate(project, designTimeBuild)) {
                 var items = afterAddition.RootElement.GetProperty("Items").GetProperty("AdditionalFiles");
-                Assert.Equal(3, items.GetArrayLength());
+                Assert.Equal(2, items.GetArrayLength());
                 Assert.Contains(items.EnumerateArray(), item => item.GetProperty("FullPath").GetString() == added);
             }
 
             File.Delete(added);
             using var afterDeletion = Evaluate(project, designTimeBuild);
-            Assert.Equal(2, afterDeletion.RootElement.GetProperty("Items").GetProperty("AdditionalFiles").GetArrayLength());
+            Assert.Single(afterDeletion.RootElement.GetProperty("Items").GetProperty("AdditionalFiles").EnumerateArray());
         } finally {
             Directory.Delete(directory, true);
         }
