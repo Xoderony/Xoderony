@@ -15,7 +15,7 @@ public sealed class JsonLocalizationValidationTests {
     public void ValidateReportsMissingTranslation() {
         var directoryPath = CreateTempDirectory();
         try {
-            WriteAllText(directoryPath, JsonLocaleTableCollection.KeysFileName, """
+            WriteAllText(directoryPath, JsonLocalizationDirectory.KeysFileName, """
                 {
                   "menu": {
                     "start": null,
@@ -35,7 +35,7 @@ public sealed class JsonLocalizationValidationTests {
                 }
                 """);
 
-            var collection = JsonLocaleTableCollection.LoadDirectory(directoryPath);
+            var collection = JsonLocalizationDirectory.LoadDirectory(directoryPath);
             var issues = JsonLocalizationValidation.Validate(collection, SimplifiedChinese);
 
             var missing = Assert.Single(issues, issue => issue.Kind == JsonLocalizationIssueKind.MissingTranslation);
@@ -50,7 +50,7 @@ public sealed class JsonLocalizationValidationTests {
     public void ValidateReportsPlaceholderMismatch() {
         var directoryPath = CreateTempDirectory();
         try {
-            WriteAllText(directoryPath, JsonLocaleTableCollection.KeysFileName, """
+            WriteAllText(directoryPath, JsonLocalizationDirectory.KeysFileName, """
                 {
                   "greeting": null
                 }
@@ -66,7 +66,7 @@ public sealed class JsonLocalizationValidationTests {
                 }
                 """);
 
-            var collection = JsonLocaleTableCollection.LoadDirectory(directoryPath);
+            var collection = JsonLocalizationDirectory.LoadDirectory(directoryPath);
             var issues = JsonLocalizationValidation.Validate(collection, English);
 
             var mismatch = Assert.Single(issues);
@@ -82,7 +82,7 @@ public sealed class JsonLocalizationValidationTests {
     public void ValidateTreatsEscapedBracesAsLiterals() {
         var directoryPath = CreateTempDirectory();
         try {
-            WriteAllText(directoryPath, JsonLocaleTableCollection.KeysFileName, """
+            WriteAllText(directoryPath, JsonLocalizationDirectory.KeysFileName, """
                 {
                   "sample": null
                 }
@@ -98,7 +98,7 @@ public sealed class JsonLocalizationValidationTests {
                 }
                 """);
 
-            var collection = JsonLocaleTableCollection.LoadDirectory(directoryPath);
+            var collection = JsonLocalizationDirectory.LoadDirectory(directoryPath);
             var issues = JsonLocalizationValidation.Validate(collection, English);
 
             Assert.Empty(issues);
@@ -116,7 +116,7 @@ public sealed class JsonLocalizationValidationTests {
     public void ValidateReportsInvalidFormatString(string translation) {
         var directoryPath = CreateTempDirectory();
         try {
-            WriteAllText(directoryPath, JsonLocaleTableCollection.KeysFileName, """
+            WriteAllText(directoryPath, JsonLocalizationDirectory.KeysFileName, """
                 {
                   "sample": null
                 }
@@ -132,7 +132,7 @@ public sealed class JsonLocalizationValidationTests {
                 }
                 """);
 
-            var collection = JsonLocaleTableCollection.LoadDirectory(directoryPath);
+            var collection = JsonLocalizationDirectory.LoadDirectory(directoryPath);
             var issues = JsonLocalizationValidation.Validate(collection, SimplifiedChinese);
 
             var invalid = Assert.Single(issues);
@@ -148,7 +148,7 @@ public sealed class JsonLocalizationValidationTests {
     public void ValidateAcceptsAlignmentFormatAndEscapedBraces() {
         var directoryPath = CreateTempDirectory();
         try {
-            WriteAllText(directoryPath, JsonLocaleTableCollection.KeysFileName, """
+            WriteAllText(directoryPath, JsonLocalizationDirectory.KeysFileName, """
                 {
                   "sample": null
                 }
@@ -164,7 +164,7 @@ public sealed class JsonLocalizationValidationTests {
                 }
                 """);
 
-            var collection = JsonLocaleTableCollection.LoadDirectory(directoryPath);
+            var collection = JsonLocalizationDirectory.LoadDirectory(directoryPath);
             var issues = JsonLocalizationValidation.Validate(collection, English);
 
             Assert.Empty(issues);
@@ -177,7 +177,7 @@ public sealed class JsonLocalizationValidationTests {
     public void ValidateReportsUnexpectedTranslationKey() {
         var directoryPath = CreateTempDirectory();
         try {
-            WriteAllText(directoryPath, JsonLocaleTableCollection.KeysFileName, """
+            WriteAllText(directoryPath, JsonLocalizationDirectory.KeysFileName, """
                 {
                   "title": null
                 }
@@ -194,7 +194,7 @@ public sealed class JsonLocalizationValidationTests {
                 }
                 """);
 
-            var collection = JsonLocaleTableCollection.LoadDirectory(directoryPath);
+            var collection = JsonLocalizationDirectory.LoadDirectory(directoryPath);
             var issues = JsonLocalizationValidation.Validate(collection, English);
 
             var unexpected = Assert.Single(issues);
@@ -210,7 +210,7 @@ public sealed class JsonLocalizationValidationTests {
     public void ValidateEntryReportsOnlySelectedEntryIssues() {
         var directoryPath = CreateTempDirectory();
         try {
-            WriteAllText(directoryPath, JsonLocaleTableCollection.KeysFileName, """
+            WriteAllText(directoryPath, JsonLocalizationDirectory.KeysFileName, """
                 {
                   "menu": {
                     "start": null,
@@ -230,7 +230,7 @@ public sealed class JsonLocalizationValidationTests {
                 }
                 """);
 
-            var collection = JsonLocaleTableCollection.LoadDirectory(directoryPath);
+            var collection = JsonLocalizationDirectory.LoadDirectory(directoryPath);
             var issues = JsonLocalizationValidation.ValidateEntry(collection, SimplifiedChinese, "menu.start");
 
             Assert.Empty(issues);
@@ -243,7 +243,7 @@ public sealed class JsonLocalizationValidationTests {
     public void ValidateReturnsNoIssuesForConsistentTables() {
         var directoryPath = CreateTempDirectory();
         try {
-            WriteAllText(directoryPath, JsonLocaleTableCollection.KeysFileName, """
+            WriteAllText(directoryPath, JsonLocalizationDirectory.KeysFileName, """
                 {
                   "menu": {
                     "start": null
@@ -261,7 +261,7 @@ public sealed class JsonLocalizationValidationTests {
                 }
                 """);
 
-            var collection = JsonLocaleTableCollection.LoadDirectory(directoryPath);
+            var collection = JsonLocalizationDirectory.LoadDirectory(directoryPath);
             var issues = JsonLocalizationValidation.Validate(collection, English);
 
             Assert.Empty(issues);

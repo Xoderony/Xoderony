@@ -1,9 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
-using System.IO;
-using System.Text.Json;
-using System.Text.Json.Nodes;
+using System.Text.Json.Serialization;
 
 namespace Xoderony.Localization.Json;
 
@@ -31,10 +29,17 @@ public abstract class JsonKeyNode {
     }
 
     /// <summary>
-    /// 是否为合法的 lower_snake_case 局部键：非空；首字符 a-z；其余为 a-z、0-9 或单个 _；禁止连续 _ 与结尾 _。
+    /// 是否为树路径可用的局部键：非空，且不含 <c>.</c>。
     /// </summary>
-    public static bool IsLowerSnakeCaseLocalKey(string? localKey) {
-        if (string.IsNullOrEmpty(localKey) || localKey[0] is < 'a' or > 'z') {
+    public static bool IsValidLocalKey([NotNullWhen(true)] string? localKey) {
+        return !string.IsNullOrEmpty(localKey) && !localKey.Contains('.');
+    }
+
+    /// <summary>
+    /// 是否为合法的 lower_snake_case 局部键：满足 <see cref="IsValidLocalKey"/>；首字符 a-z；其余为 a-z、0-9 或单个 _；禁止连续 _ 与结尾 _。
+    /// </summary>
+    public static bool IsLowerSnakeCaseLocalKey([NotNullWhen(true)] string? localKey) {
+        if (!IsValidLocalKey(localKey) || localKey[0] is < 'a' or > 'z') {
             return false;
         }
 
@@ -60,7 +65,7 @@ public abstract class JsonKeyNode {
         return !previousUnderscore;
     }
 
-    internal abstract JsonKeyNode Clone();
+    public abstract JsonKeyNode Clone();
 
     internal virtual void SetKeys(string localKey, string parentFullKey) {
         ArgumentNullException.ThrowIfNull(localKey);
@@ -70,13 +75,14 @@ public abstract class JsonKeyNode {
     }
 }
 
+[JsonConverter(typeof(JsonKeyGroupConverter))]
 public sealed class JsonKeyGroup : JsonKeyNode {
 
     private readonly SortedDictionary<string, JsonKeyNode> _localKeyToChild = new(StringComparer.Ordinal);
 
     public IReadOnlyDictionary<string, JsonKeyNode> LocalKeyToChild => _localKeyToChild;
 
-    internal JsonKeyGroup(string localKey, string fullKey) : base(localKey, fullKey) {
+    public JsonKeyGroup(string localKey, string fullKey) : base(localKey, fullKey) {
     }
 
     public bool TryGet(string relativeKey, [NotNullWhen(true)] out JsonKeyNode? node) {
@@ -110,7 +116,6 @@ public sealed class JsonKeyGroup : JsonKeyNode {
         if (!TryGet(relativeKey, out var node)) {
             throw new KeyNotFoundException($"The localization path '{relativeKey}' does not exist.");
         }
-
         return node;
     }
 
@@ -118,11 +123,9 @@ public sealed class JsonKeyGroup : JsonKeyNode {
         if (relativeKey.Length == 0) {
             return this;
         }
-
         if (Get(relativeKey) is not JsonKeyGroup group) {
             throw new ArgumentException($"The localization path '{relativeKey}' is not a group.", nameof(relativeKey));
         }
-
         return group;
     }
 
@@ -141,21 +144,21 @@ public sealed class JsonKeyGroup : JsonKeyNode {
         }
     }
 
-    public string AllocateLocalKey(string localKey) {
-        // localKey 必须非空；字典查询负责拒绝空键。
-        if (!_localKeyToChild.ContainsKey(localKey)) {
-            return localKey;
+    public string GetUnusedLocalKey(string preferredLocalKey) {
+        // preferredLocalKey 必须非空；字典查询负责拒绝空键。
+        if (!_localKeyToChild.ContainsKey(preferredLocalKey)) {
+            return preferredLocalKey;
         }
 
         for (var suffix = 1; ; suffix++) {
-            var candidate = $"{localKey}_{suffix}";
+            var candidate = $"{preferredLocalKey}_{suffix}";
             if (!_localKeyToChild.ContainsKey(candidate)) {
                 return candidate;
             }
         }
     }
 
-    internal override JsonKeyNode Clone() {
+    public override JsonKeyGroup Clone() {
         var group = new JsonKeyGroup(LocalKey, FullKey);
         foreach (var child in _localKeyToChild.Values) {
             group.AddChild(child.LocalKey, child.Clone());
@@ -164,66 +167,38 @@ public sealed class JsonKeyGroup : JsonKeyNode {
         return group;
     }
 
-    internal JsonKeyGroup AddGroup(string localKey) {
+    public JsonKeyGroup AddGroup(string localKey) {
+        if (!IsValidLocalKey(localKey)) {
+            throw new ArgumentException($"'{localKey}' cannot be empty or contain '.'.", nameof(localKey));
+        }
+
         var group = new JsonKeyGroup(localKey, CombineKey(FullKey, localKey));
         _localKeyToChild.Add(localKey, group);
         return group;
     }
 
-    internal void AddEntry(string localKey) {
+    public JsonKeyEntry AddEntry(string localKey) {
+        if (!IsValidLocalKey(localKey)) {
+            throw new ArgumentException($"'{localKey}' cannot be empty or contain '.'.", nameof(localKey));
+        }
+
         var entry = new JsonKeyEntry(localKey, CombineKey(FullKey, localKey));
         _localKeyToChild.Add(localKey, entry);
+        return entry;
     }
 
-    internal void AddChild(string localKey, JsonKeyNode child) {
-        // child 必须非空；SetKeys 失败时不会加入子节点。
+    public void AddChild(string localKey, JsonKeyNode child) {
+        if (!IsValidLocalKey(localKey)) {
+            throw new ArgumentException($"'{localKey}' cannot be empty or contain '.'.", nameof(localKey));
+        }
+
+        ArgumentNullException.ThrowIfNull(child);
         child.SetKeys(localKey, FullKey);
         _localKeyToChild.Add(localKey, child);
     }
 
-    internal bool RemoveChild(string localKey, [NotNullWhen(true)] out JsonKeyNode? child) {
+    public bool RemoveChild(string localKey, [NotNullWhen(true)] out JsonKeyNode? child) {
         return _localKeyToChild.Remove(localKey, out child);
-    }
-
-    internal static JsonKeyGroup Parse(JsonObject keys, string keysFilePath) {
-        var root = new JsonKeyGroup(string.Empty, string.Empty);
-        Populate(root, keys, keysFilePath);
-        return root;
-
-        static void Populate(JsonKeyGroup group, JsonObject keysObject, string filePath) {
-            foreach (var (localKey, value) in keysObject) {
-                if (!IsLowerSnakeCaseLocalKey(localKey)) {
-                    throw new InvalidDataException($"The local key '{localKey}' in '{filePath}' is not valid lower_snake_case.");
-                }
-
-                if (value is null || (value is JsonValue jsonValue && jsonValue.GetValueKind() == JsonValueKind.Null)) {
-                    group.AddEntry(localKey);
-                    continue;
-                }
-
-                if (value is JsonObject child) {
-                    Populate(group.AddGroup(localKey), child, filePath);
-                    continue;
-                }
-
-                var fullKey = CombineKey(group.FullKey, localKey);
-                throw new InvalidDataException($"The keys value '{fullKey}' in '{filePath}' must be null or an object.");
-            }
-        }
-    }
-
-    internal JsonObject ToJsonObject() {
-        var root = new JsonObject();
-        foreach (var (localKey, child) in _localKeyToChild) {
-            if (child is JsonKeyGroup group) {
-                root.Add(localKey, group.ToJsonObject());
-                continue;
-            }
-
-            root.Add(localKey, null);
-        }
-
-        return root;
     }
 
     internal override void SetKeys(string localKey, string parentFullKey) {
@@ -236,10 +211,10 @@ public sealed class JsonKeyGroup : JsonKeyNode {
 
 public sealed class JsonKeyEntry : JsonKeyNode {
 
-    internal JsonKeyEntry(string localKey, string fullKey) : base(localKey, fullKey) {
+    public JsonKeyEntry(string localKey, string fullKey) : base(localKey, fullKey) {
     }
 
-    internal override JsonKeyNode Clone() {
+    public override JsonKeyEntry Clone() {
         return new JsonKeyEntry(LocalKey, FullKey);
     }
 }

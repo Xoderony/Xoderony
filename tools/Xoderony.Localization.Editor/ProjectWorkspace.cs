@@ -15,52 +15,52 @@ internal enum ProjectWorkspaceChangeKind {
 internal sealed class ProjectWorkspace {
 
     private readonly IDelegateDispatcher<ProjectWorkspaceChangedHandler> _changed;
-    private JsonLocaleTableCollection? _tables;
+    private JsonLocalizationDirectory? _directory;
     private CultureInfo? _placeholderReferenceCulture;
 
     public string? DirectoryPath { get; private set; }
 
     public CultureInfo? PlaceholderReferenceCulture => _placeholderReferenceCulture;
 
-    public JsonLocaleTableCollection? Tables => _tables;
+    public JsonLocalizationDirectory? Directory => _directory;
 
     // 编辑操作要求已打开项目，在回调或写入状态前拒绝未打开状态。
-    private JsonLocaleTableCollection OpenTables => _tables ?? throw new InvalidOperationException("No project is open.");
+    private JsonLocalizationDirectory OpenProject => _directory ?? throw new InvalidOperationException("No project is open.");
 
     public ProjectWorkspace(IDelegateDispatcher<ProjectWorkspaceChangedHandler> changed) {
         _changed = changed;
     }
 
     public void OpenDirectory(string directoryPath, string? preferredReferenceCultureName) {
-        var tables = JsonLocaleTableCollection.LoadDirectory(directoryPath);
-        _tables = tables;
+        var directory = JsonLocalizationDirectory.LoadDirectory(directoryPath);
+        _directory = directory;
         DirectoryPath = directoryPath;
-        _placeholderReferenceCulture = ResolveReferenceCulture(tables, preferredReferenceCultureName);
+        _placeholderReferenceCulture = ResolveReferenceCulture(directory, preferredReferenceCultureName);
         _changed.Handlers?.Invoke(new ProjectWorkspaceChange(ProjectWorkspaceChangeKind.ProjectOpened));
     }
 
     public void Save() {
-        var tables = OpenTables;
-        tables.Save();
+        var directory = OpenProject;
+        directory.Save();
     }
 
-    public void ApplyStructureChange(Action<JsonLocaleTableCollection> change) {
-        var tables = OpenTables;
-        change(tables);
-        _placeholderReferenceCulture ??= ResolveReferenceCulture(tables, preferredCultureName: null);
+    public void ApplyStructureChange(Action<JsonLocalizationDirectory> change) {
+        var directory = OpenProject;
+        change(directory);
+        _placeholderReferenceCulture ??= ResolveReferenceCulture(directory, preferredCultureName: null);
         _changed.Handlers?.Invoke(new ProjectWorkspaceChange(ProjectWorkspaceChangeKind.StructureChanged));
     }
 
     public void SetTranslation(CultureInfo culture, string entryKey, string translation) {
-        var tables = OpenTables;
-        tables.SetTranslation(culture, entryKey, translation);
+        var directory = OpenProject;
+        directory.SetTranslation(culture, entryKey, translation);
         _changed.Handlers?.Invoke(new ProjectWorkspaceChange(ProjectWorkspaceChangeKind.TranslationChanged, entryKey));
     }
 
     public bool SetPlaceholderReferenceCulture(CultureInfo culture) {
-        var tables = OpenTables;
+        var directory = OpenProject;
         CultureInfo? matchingCulture = null;
-        foreach (var candidate in tables.GetCultures()) {
+        foreach (var candidate in directory.GetCultures()) {
             if (string.Equals(candidate.Name, culture.Name, StringComparison.OrdinalIgnoreCase)) {
                 matchingCulture = candidate;
                 break;
@@ -68,7 +68,7 @@ internal sealed class ProjectWorkspace {
         }
 
         if (matchingCulture is null) {
-            throw new ArgumentException($"The culture '{culture.Name}' is not part of this locale table collection.", nameof(culture));
+            throw new ArgumentException($"The culture '{culture.Name}' is not part of this localization directory.", nameof(culture));
         }
 
         if (_placeholderReferenceCulture is not null
@@ -81,9 +81,9 @@ internal sealed class ProjectWorkspace {
         return true;
     }
 
-    private static CultureInfo? ResolveReferenceCulture(JsonLocaleTableCollection tables, string? preferredCultureName) {
+    private static CultureInfo? ResolveReferenceCulture(JsonLocalizationDirectory directory, string? preferredCultureName) {
         CultureInfo? firstCulture = null;
-        foreach (var culture in tables.GetCultures()) {
+        foreach (var culture in directory.GetCultures()) {
             firstCulture ??= culture;
             if (string.Equals(culture.Name, preferredCultureName, StringComparison.OrdinalIgnoreCase)) {
                 return culture;

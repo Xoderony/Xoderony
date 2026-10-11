@@ -16,7 +16,7 @@
 - [`Styles/VisualStudio.xaml`](./Styles/VisualStudio.xaml)：字体和浅暗主题共用的控件样式。
 - [`Styles/VisualStudioLight.xaml`](./Styles/VisualStudioLight.xaml)：浅色主题颜色和画刷。
 - [`Styles/VisualStudioDark.xaml`](./Styles/VisualStudioDark.xaml)：深色主题颜色和画刷。
-- [`../../src/Xoderony.Localization.Json/JsonLocaleTableCollection.cs`](../../src/Xoderony.Localization.Json/JsonLocaleTableCollection.cs)：JSON 语言表数据层。
+- [`../../src/Xoderony.Localization.Json/JsonLocalizationDirectory.cs`](../../src/Xoderony.Localization.Json/JsonLocalizationDirectory.cs)：JSON 语言表数据层。
 
 ## 1. 先建立整体认识
 
@@ -36,7 +36,7 @@ MainWindow.xaml.cs
 窗口状态、导航、搜索、编辑提交、动态菜单
   │  调用公开 API
   ▼
-用户 JsonLocaleTableCollection
+用户 JsonLocalizationDirectory
 加载、修改、复制、移动、删除、保存用户语言表
 ```
 
@@ -222,7 +222,7 @@ CultureNameToTranslation       culture 名称到翻译字符串的字典
 IsGroup      是否为键组，并驱动键组与词条的图标样式
 ```
 
-它没有写回 JSON 的职责。真正的数据修改仍通过 `JsonLocaleTableCollection` 完成。
+它没有写回 JSON 的职责。真正的数据修改仍通过 `JsonLocalizationDirectory` 完成。
 
 ## 7. 为什么 Locale 列必须动态创建
 
@@ -236,7 +236,7 @@ AutoGenerateColumns="False"
 
 1. 清空旧列。
 2. 创建固定的“名称”列。
-3. 遍历 `_tables.GetCultures()`。
+3. 遍历 `_workspace.Directory.GetCultures()`。
 4. 为每个 culture 创建一个 `DataGridTextColumn`。
 
 每个翻译列绑定到类似下面的路径：
@@ -288,7 +288,7 @@ HandleCellDoubleClick
 EditTranslation
   ↓ 创建并打开 TranslationEditDialog
 用户确认
-  ├─ _tables.SetTranslation(culture, fullKey, translation)
+  ├─ _workspace.Directory.SetTranslation(culture, fullKey, translation)
   ├─ row.CultureNameToTranslation[culture.Name] = translation
   └─ TableGrid.Items.Refresh()
 ```
@@ -308,7 +308,7 @@ EditTranslation
 
 1. 读取所选节点及其当前名称。
 2. 打开普通输入对话框。
-3. 用户确认后，通过 `ChangeStructure()` 调用 `_tables.Rename(...)`。
+3. 用户确认后，通过 `ChangeStructure()` 调用 `_workspace.Directory.Rename(...)`。
 4. 重建行并恢复到重命名后的节点。
 
 重命名不再发生在 `CellEditEnding` 内，因此不需要重命名许可标记、延迟刷新字段或 `Dispatcher` 调度。双击键组仍然只负责进入该键组。
@@ -362,7 +362,7 @@ Backspace 由窗口的 `OnPreviewKeyDown()` 捕获，并通过 `GetParentKey()` 
 
 ## 15. 复制、剪切、粘贴与移动
 
-**剪贴板（Ctrl+C / X / V）**：快照写入 Windows 剪贴板；剪切为 `Set` 后立刻 `Remove`；粘贴到**当前键组**，同名时用 `AllocateLocalKey`。
+**剪贴板（Ctrl+C / X / V）**：快照写入 Windows 剪贴板；剪切为 `Set` 后立刻 `Remove`；粘贴到**当前键组**，同名时用 `GetUnusedLocalKey`。
 
 **复制到 / 移动到**：目标键组对话框 → `Copy` / `Move`（不经剪贴板）。复制允许同父；移动禁止同父。
 
@@ -391,7 +391,7 @@ Locale 数量变化 → 结束编辑后重建列和行
 `OpenDirectory()` 使用 `OpenFolderDialog` 选择目录，再调用：
 
 ```csharp
-JsonLocaleTableCollection.LoadDirectory(dialog.FolderName)
+JsonLocalizationDirectory.LoadDirectory(dialog.FolderName)
 ```
 
 打开成功后会：
@@ -443,7 +443,7 @@ WPF 控件会被模板展开为更细的可视元素。例如鼠标实际点击�
 | 修改翻译提交行为 | `HandleCellDoubleClick()`、`EditTranslation()`、`TranslationEditDialog` |
 | 修改重命名行为 | `Rename()`、`Prompt()`、`ChangeStructure()` |
 | 修改增删复制移动 | 对应事件方法与 `ChangeStructure()` |
-| 修改 JSON 契约或保存语义 | `JsonLocaleTableCollection`，而不是 XAML |
+| 修改 JSON 契约或保存语义 | `JsonLocalizationDirectory`，而不是 XAML |
 
 ## 21. 推荐的源码阅读顺序
 

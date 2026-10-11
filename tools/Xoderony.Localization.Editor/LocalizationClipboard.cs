@@ -24,15 +24,15 @@ internal static class LocalizationClipboard {
         }
     }
 
-    public static void Set(JsonLocaleTableCollection tables, JsonKeyNode node) {
-        ArgumentNullException.ThrowIfNull(tables);
+    public static void Set(JsonLocalizationDirectory directory, JsonKeyNode node) {
+        ArgumentNullException.ThrowIfNull(directory);
         ArgumentNullException.ThrowIfNull(node);
 
         var payload = new ClipboardPayload {
             Format = FormatName,
             Version = FormatVersion,
             LocalKey = node.LocalKey,
-            Node = CreateNode(tables, node)
+            Node = CreateNode(directory, node)
         };
         var json = JsonSerializer.Serialize(payload, new JsonSerializerOptions { WriteIndented = true });
         var data = new DataObject();
@@ -82,46 +82,46 @@ internal static class LocalizationClipboard {
         return true;
     }
 
-    public static void Paste(JsonLocaleTableCollection tables, string parentGroupKey, string localKey, ClipboardPayload payload) {
-        ArgumentNullException.ThrowIfNull(tables);
+    public static void Paste(JsonLocalizationDirectory directory, string parentGroupKey, string localKey, ClipboardPayload payload) {
+        ArgumentNullException.ThrowIfNull(directory);
         ArgumentNullException.ThrowIfNull(payload);
 
-        AddNode(tables, parentGroupKey, localKey, payload.Node);
+        AddNode(directory, parentGroupKey, localKey, payload.Node);
     }
 
-    private static ClipboardNode CreateNode(JsonLocaleTableCollection tables, JsonKeyNode node) {
+    private static ClipboardNode CreateNode(JsonLocalizationDirectory directory, JsonKeyNode node) {
         if (node is JsonKeyGroup group) {
             var localKeyToChild = new Dictionary<string, ClipboardNode>(StringComparer.Ordinal);
             foreach (var child in group.LocalKeyToChild.Values) {
-                localKeyToChild.Add(child.LocalKey, CreateNode(tables, child));
+                localKeyToChild.Add(child.LocalKey, CreateNode(directory, child));
             }
 
             return new ClipboardNode { LocalKeyToChild = localKeyToChild };
         }
 
         var cultureNameToTranslation = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
-        foreach (var culture in tables.GetCultures()) {
-            cultureNameToTranslation.Add(culture.Name, tables.GetTranslation(culture, node.FullKey));
+        foreach (var culture in directory.GetCultures()) {
+            cultureNameToTranslation.Add(culture.Name, directory.GetTranslation(culture, node.FullKey));
         }
 
         return new ClipboardNode { CultureNameToTranslation = cultureNameToTranslation };
     }
 
-    private static void AddNode(JsonLocaleTableCollection tables, string parentGroupKey, string localKey, ClipboardNode node) {
+    private static void AddNode(JsonLocalizationDirectory directory, string parentGroupKey, string localKey, ClipboardNode node) {
         var key = JsonKeyNode.CombineKey(parentGroupKey, localKey);
         if (node.LocalKeyToChild is not null) {
-            tables.AddGroup(parentGroupKey, localKey);
+            directory.AddGroup(parentGroupKey, localKey);
             foreach (var child in node.LocalKeyToChild) {
-                AddNode(tables, key, child.Key, child.Value);
+                AddNode(directory, key, child.Key, child.Value);
             }
 
             return;
         }
 
-        tables.AddEntry(parentGroupKey, localKey);
-        foreach (var culture in tables.GetCultures()) {
+        directory.AddEntry(parentGroupKey, localKey);
+        foreach (var culture in directory.GetCultures()) {
             if (TryGetValue(node.CultureNameToTranslation!, culture, out var value)) {
-                tables.SetTranslation(culture, key, value);
+                directory.SetTranslation(culture, key, value);
             }
         }
     }

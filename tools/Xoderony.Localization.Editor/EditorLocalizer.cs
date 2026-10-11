@@ -12,7 +12,7 @@ internal sealed class EditorLocalizer : INotifyPropertyChanged {
     private const string FallbackCultureName = "zh-CN";
     private readonly CultureInfo _fallbackCulture;
     private readonly CultureInfo[] _cultures;
-    private readonly JsonLocaleTableCollection _tables;
+    private readonly JsonLocalizationDirectory _directory;
     private StringLocalizer _localizer;
     private CultureInfo _culture;
 
@@ -26,17 +26,17 @@ internal sealed class EditorLocalizer : INotifyPropertyChanged {
 
     public string this[string key, params object?[] arguments] => _localizer[key, arguments];
 
-    private EditorLocalizer(JsonLocaleTableCollection tables, CultureInfo preferredCulture) {
-        _tables = tables;
-        _cultures = CaptureCultures(tables);
+    private EditorLocalizer(JsonLocalizationDirectory directory, CultureInfo preferredCulture) {
+        _directory = directory;
+        _cultures = CaptureCultures(directory);
         _fallbackCulture = FindCulture(FallbackCultureName) ?? throw new InvalidDataException($"The editor localization directory must contain '{FallbackCultureName}.json'.");
         _culture = ResolveCulture(preferredCulture);
         _localizer = BuildLocalizer(_culture);
     }
 
     public static EditorLocalizer Load(string directoryPath, CultureInfo? preferredCulture = null) {
-        var tables = JsonLocaleTableCollection.LoadDirectory(directoryPath);
-        return new EditorLocalizer(tables, preferredCulture ?? CultureInfo.CurrentUICulture);
+        var directory = JsonLocalizationDirectory.LoadDirectory(directoryPath);
+        return new EditorLocalizer(directory, preferredCulture ?? CultureInfo.CurrentUICulture);
     }
 
     public bool SetCulture(CultureInfo culture) {
@@ -65,8 +65,8 @@ internal sealed class EditorLocalizer : INotifyPropertyChanged {
 
     private List<KeyValuePair<string, string>> GetNonEmptyValues(CultureInfo culture) {
         var values = new List<KeyValuePair<string, string>>();
-        foreach (var key in _tables.GetEntryKeys()) {
-            var value = _tables.GetTranslation(culture, key);
+        foreach (var key in _directory.GetEntryKeys()) {
+            var value = _directory.GetTranslation(culture, key);
             if (value.Length > 0) {
                 values.Add(new KeyValuePair<string, string>(key, value));
             }
@@ -100,10 +100,10 @@ internal sealed class EditorLocalizer : INotifyPropertyChanged {
         return null;
     }
 
-    private static CultureInfo[] CaptureCultures(JsonLocaleTableCollection tables) {
-        var cultures = new CultureInfo[tables.CultureCount];
+    private static CultureInfo[] CaptureCultures(JsonLocalizationDirectory directory) {
+        var cultures = new CultureInfo[directory.CultureCount];
         var index = 0;
-        foreach (var culture in tables.GetCultures()) {
+        foreach (var culture in directory.GetCultures()) {
             cultures[index++] = culture;
         }
 
