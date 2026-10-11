@@ -10,6 +10,7 @@ $projects = @(
     "tools\Xoderony.Localization.CodeGeneration\Xoderony.Localization.CodeGeneration.csproj"
     "src\Xoderony.Channels\Xoderony.Channels.csproj"
     "src\Xoderony.Collections\Xoderony.Collections.csproj"
+    "src\Xoderony.DependencyInjection\Xoderony.DependencyInjection.csproj"
     "src\Xoderony.Localization\Xoderony.Localization.csproj"
     "src\Xoderony.Localization.Json\Xoderony.Localization.Json.csproj"
     "src\Xoderony.Logging\Xoderony.Logging.csproj"

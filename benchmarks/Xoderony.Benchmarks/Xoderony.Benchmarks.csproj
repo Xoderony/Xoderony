@@ -5,8 +5,21 @@
     <IsPackable>false</IsPackable>
     <GenerateDocumentationFile>false</GenerateDocumentationFile>
   </PropertyGroup>
+  <PropertyGroup Condition="Exists('..\.dependencies\VContainer-1.19.0\bin\Release\net10.0\VContainer.Standalone.dll')">
+    <DefineConstants>$(DefineConstants);VCONTAINER_BENCHMARK</DefineConstants>
+  </PropertyGroup>
+  <ItemGroup Condition="Exists('..\.dependencies\VContainer-1.19.0\bin\Release\net10.0\VContainer.Standalone.dll')">
+    <Reference Include="VContainer.Standalone">
+      <HintPath>..\.dependencies\VContainer-1.19.0\bin\Release\net10.0\VContainer.Standalone.dll</HintPath>
+    </Reference>
+  </ItemGroup>
   <ItemGroup>
     <PackageReference Include="BenchmarkDotNet" Version="0.15.8" />
+    <PackageReference Include="DryIoc.dll" Version="5.4.3" />
+    <PackageReference Include="Stashbox" Version="5.20.0" />
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="10.0.11" />
+    <PackageReference Include="Jab" Version="0.12.0" PrivateAssets="all" />
+    <ProjectReference Include="..\..\src\Xoderony.DependencyInjection\Xoderony.DependencyInjection.csproj" />
     <ProjectReference Include="..\..\src\Xoderony.Serialization\Xoderony.Serialization.csproj" />
   </ItemGroup>
 </Project>

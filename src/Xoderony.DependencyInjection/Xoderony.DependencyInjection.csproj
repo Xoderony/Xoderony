@@ -1,0 +1,8 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <RootNamespace>Xoderony.DependencyInjection</RootNamespace>
+    <AssemblyName>Xoderony.DependencyInjection</AssemblyName>
+    <PackageId>Xoderony.DependencyInjection</PackageId>
+    <Description>Dependency registration, scopes, and reflection-based injection for .NET.</Description>
+  </PropertyGroup>
+</Project>

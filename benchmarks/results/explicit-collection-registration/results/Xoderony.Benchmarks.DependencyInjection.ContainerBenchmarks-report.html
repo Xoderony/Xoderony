@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang='en'>
+<head>
+<meta charset='utf-8' />
+<title>Xoderony.Benchmarks.DependencyInjection.ContainerBenchmarks-20260913-231849</title>
+
+<style type="text/css">
+	table { border-collapse: collapse; display: block; width: 100%; overflow: auto; }
+	td, th { padding: 6px 13px; border: 1px solid #ddd; text-align: right; }
+	tr { background-color: #fff; border-top: 1px solid #ccc; }
+	tr:nth-child(even) { background: #f8f8f8; }
+</style>
+</head>
+<body>
+<pre><code>
+BenchmarkDotNet v0.15.8, Windows 11 (10.0.26200.9445/25H2/2025Update/HudsonValley2)
+12th Gen Intel Core i5-12400F 2.50GHz, 1 CPU, 12 logical and 6 physical cores
+.NET SDK 10.0.400
+  [Host]     : .NET 10.0.11 (10.0.11, 10.0.1126.37416), X64 RyuJIT x86-64-v3
+  Job-UWQVVG : .NET 10.0.11 (10.0.11, 10.0.1126.37416), X64 RyuJIT x86-64-v3
+</code></pre>
+<pre><code>IterationCount=8  IterationTime=300ms  WarmupCount=3  
+</code></pre>
+
+<table>
+<thead><tr><th>Method       </th><th>Categories    </th><th>Mean  </th><th>Error  </th><th>StdDev</th><th>Ratio</th><th>RatioSD</th><th>Gen0</th><th>Allocated</th><th>Alloc Ratio</th>
+</tr>
+</thead><tbody><tr><td>XoderonyBuild</td><td>BuildAndFirstResolve</td><td>8,322.339 ns</td><td>2,060.7168 ns</td><td>914.9710 ns</td><td>1.01</td><td>0.14</td><td>0.9969</td><td>9824 B</td><td>1.00</td>
+</tr><tr><td>XoderonyGenericType</td><td>CachedGenericType</td><td>8.098 ns</td><td>0.3960 ns</td><td>0.1758 ns</td><td>1.00</td><td>0.03</td><td>-</td><td>-</td><td>NA</td>
+</tr><tr><td>XoderonyCached</td><td>CachedResolve</td><td>7.735 ns</td><td>0.5705 ns</td><td>0.2984 ns</td><td>1.00</td><td>0.05</td><td>-</td><td>-</td><td>NA</td>
+</tr></tbody></table>
+</body>
+</html>

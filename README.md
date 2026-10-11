@@ -6,6 +6,7 @@
 
 - `Xoderony.Channels`
 - `Xoderony.Collections`
+- `Xoderony.DependencyInjection`：服务注册、作用域和反射注入，详见[使用说明](src/Xoderony.DependencyInjection/README.md)。
 - `Xoderony.Localization`
 - `Xoderony.Localization.Json`
 - `Xoderony.Localization.CodeGeneration`

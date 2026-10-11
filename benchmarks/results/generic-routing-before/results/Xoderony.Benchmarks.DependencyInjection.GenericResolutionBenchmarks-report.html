@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang='en'>
+<head>
+<meta charset='utf-8' />
+<title>Xoderony.Benchmarks.DependencyInjection.GenericResolutionBenchmarks-20260913-202931</title>
+
+<style type="text/css">
+	table { border-collapse: collapse; display: block; width: 100%; overflow: auto; }
+	td, th { padding: 6px 13px; border: 1px solid #ddd; text-align: right; }
+	tr { background-color: #fff; border-top: 1px solid #ccc; }
+	tr:nth-child(even) { background: #f8f8f8; }
+</style>
+</head>
+<body>
+<pre><code>
+BenchmarkDotNet v0.15.8, Windows 11 (10.0.26200.9445/25H2/2025Update/HudsonValley2)
+12th Gen Intel Core i5-12400F 2.50GHz, 1 CPU, 12 logical and 6 physical cores
+.NET SDK 10.0.400
+  [Host]     : .NET 10.0.11 (10.0.11, 10.0.1126.37416), X64 RyuJIT x86-64-v3
+  Job-UWQVVG : .NET 10.0.11 (10.0.11, 10.0.1126.37416), X64 RyuJIT x86-64-v3
+</code></pre>
+<pre><code>IterationCount=8  IterationTime=300ms  WarmupCount=3  
+</code></pre>
+
+<table>
+<thead><tr><th>Method              </th><th>Mean </th><th>Error</th><th>StdDev</th><th>Gen0</th><th>Allocated</th>
+</tr>
+</thead><tbody><tr><td>CachedKeyedAliases</td><td>40.49 ns</td><td>2.756 ns</td><td>1.442 ns</td><td>-</td><td>-</td>
+</tr><tr><td>BuildAndFirstGeneric</td><td>1,390.27 ns</td><td>114.847 ns</td><td>60.067 ns</td><td>0.2591</td><td>2464 B</td>
+</tr><tr><td>BuildAndBothAliases</td><td>1,415.84 ns</td><td>152.307 ns</td><td>79.659 ns</td><td>0.2578</td><td>2464 B</td>
+</tr><tr><td>BuildFourAndResolveLast</td><td>2,678.18 ns</td><td>386.539 ns</td><td>202.167 ns</td><td>0.4067</td><td>3856 B</td>
+</tr><tr><td>InheritedScopeFirstGeneric</td><td>185.52 ns</td><td>17.601 ns</td><td>9.206 ns</td><td>0.0739</td><td>696 B</td>
+</tr></tbody></table>
+</body>
+</html>
